@@ -1,105 +1,138 @@
 package qc.pipeline;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 
 public class WorkflowManager {
     private static final Logger logger = LoggerFactory.getLogger(WorkflowManager.class);
-    private final JobExecutor executor = new JobExecutor();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String PYTHON_CMD = "C:\\Users\\VEDANT\\AppData\\Local\\Programs\\Python\\Python312\\python.exe";
-    private static final String MODULES_DIR = "python_modules";
-    private static final String OUTPUT_DIR = "outputs";
+    // 1. DYNAMICALLY RESOLVE PATHS (No hardcoding)
+    private static final String PROJECT_ROOT = System.getProperty("user.dir");
+
+    // Use the venv Python to ensure libraries (CV2, EasyOCR) are found
+    private static final String PYTHON_EXEC = Paths.get(PROJECT_ROOT, "venv", "Scripts", "python.exe").toString();
+
+    // The main entry point script
+    private static final String MAIN_SCRIPT = Paths.get(PROJECT_ROOT, "src", "main.py").toString();
+
+    // Where reports will land
+    private static final String OUTPUT_DIR = Paths.get(PROJECT_ROOT, "reports").toString();
 
     public void runQualityControlPipeline(String videoFileName) {
         String videoPath = Paths.get(videoFileName).toAbsolutePath().toString();
 
-        // Ensure output dir exists
-        new File(OUTPUT_DIR).mkdirs();
+        logger.info("==========================================");
+        logger.info(" STARTING QC PIPELINE");
+        logger.info(" Python Engine: {}", PYTHON_EXEC);
+        logger.info(" Target Video:  {}", videoPath);
+        logger.info("==========================================");
 
-        logger.info("--- STARTING HYBRID QC PIPELINE FOR: {} ---", videoFileName);
+        // 2. CONSTRUCT THE COMMAND
+        // We call main.py, which handles all sub-modules (Visual, Audio, OCR, Dashboard)
+        CommandLine cmdLine = new CommandLine(PYTHON_EXEC);
+        cmdLine.addArgument(MAIN_SCRIPT);
+        cmdLine.addArgument("--input");
+        cmdLine.addArgument(videoPath, true); // true = handle quoting for spaces
+        cmdLine.addArgument("--output");
+        cmdLine.addArgument(OUTPUT_DIR, true);
 
-        // 1. Define the Tasks
-        String visualReport = Paths.get(OUTPUT_DIR, "report_visual.json").toString();
-        String audioReport = Paths.get(OUTPUT_DIR, "report_audio.json").toString();
-        String ocrReport = Paths.get(OUTPUT_DIR, "report_ocr.json").toString();
+        // 3. EXECUTE
+        int exitCode = executeCommand(cmdLine);
 
-        // Task A: Visual QC
-        String cmdVisual = String.format("%s %s/detect_black.py --input \"%s\" --output \"%s\"",
-                PYTHON_CMD, MODULES_DIR, videoPath, visualReport);
+        // 4. PROCESS RESULTS
+        if (exitCode == 0) {
+            String masterReportPath = Paths.get(OUTPUT_DIR, "Master_Report.json").toString();
+            String dashboardPath = Paths.get(OUTPUT_DIR, "dashboard.html").toString();
 
-        // Task B: Audio QC
-        String cmdAudio = String.format("%s %s/validate_loudness.py --input \"%s\" --output \"%s\"",
-                PYTHON_CMD, MODULES_DIR, videoPath, audioReport);
-
-        // Task C: OCR
-        String cmdOcr = String.format("%s %s/video_ocr.py --input \"%s\" --output \"%s\"",
-                PYTHON_CMD, MODULES_DIR, videoPath, ocrReport);
-
-        // 2. Execute Parallel or Sequential? (Sequential for simplicity here)
-        runTask("Visual QC", cmdVisual);
-        runTask("Audio QC", cmdAudio);
-        runTask("OCR Extraction", cmdOcr);
-
-        // 3. Aggregate
-        logger.info("--- AGGREGATING RESULTS ---");
-        String masterReportPath = Paths.get(OUTPUT_DIR, "Master_Report.json").toString();
-        // New Line (Points to python_modules folder)
-        String cmdAggregator = String.format("%s %s/generate_master_report.py --inputs \"%s\" \"%s\" \"%s\" --output \"%s\"",
-                PYTHON_CMD, MODULES_DIR, visualReport, audioReport, ocrReport, masterReportPath);
-
-        boolean aggSuccess = runTask("Aggregator", cmdAggregator);
-
-        // 4. Final Java Processing
-        if (aggSuccess) {
+            logger.info("[SUCCESS] Pipeline finished. Parsing results...");
             parseAndPrintResult(masterReportPath);
+
+            // Auto-open dashboard
+            try {
+                logger.info("Opening Dashboard: {}", dashboardPath);
+                Runtime.getRuntime().exec("cmd /c start " + dashboardPath);
+            } catch (Exception e) {
+                logger.warn("Could not auto-open browser: " + e.getMessage());
+            }
         } else {
-            logger.error("Pipeline failed at Aggregation step.");
+            logger.error("[FAILURE] Pipeline exited with code {}", exitCode);
         }
     }
 
-    private boolean runTask(String taskName, String command) {
-        JobExecutor.ExecutionResult result = executor.executeCommand(command);
-        if (result.exitCode == 0) {
-            logger.info("[SUCCESS] {}", taskName);
-            return true;
-        } else {
-            logger.error("[FAILED] {} (Exit Code: {})", taskName, result.exitCode);
-            logger.error("Stderr: {}", result.errorLogs);
-            return false;
+    private int executeCommand(CommandLine cmdLine) {
+        DefaultExecutor executor = new DefaultExecutor();
+
+        // Capture output to log it in real-time or debug
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream errStream = new ByteArrayOutputStream();
+        PumpStreamHandler streamHandler = new PumpStreamHandler(outStream, errStream);
+        executor.setStreamHandler(streamHandler);
+
+        // Allow non-zero exit codes to be handled manually
+        executor.setExitValues(null);
+
+        try {
+            int exitValue = executor.execute(cmdLine);
+
+            // Print Python logs to Java Logger
+            logger.info("--- PYTHON LOGS ---");
+            logger.info(outStream.toString());
+
+            if (exitValue != 0) {
+                logger.error("--- PYTHON ERRORS ---");
+                logger.error(errStream.toString());
+            }
+
+            return exitValue;
+        } catch (IOException e) {
+            logger.error("Execution failed", e);
+            return -1;
         }
     }
 
     private void parseAndPrintResult(String jsonPath) {
         try {
-            // Read JSON file into a Map
-            Map<?, ?> report = objectMapper.readValue(new File(jsonPath), Map.class);
+            File reportFile = new File(jsonPath);
+            if (!reportFile.exists()) {
+                logger.error("Report file not found: {}", jsonPath);
+                return;
+            }
 
-            String overallStatus = (String) report.get("overall_status");
-            List<?> timeline = (List<?>) report.get("timeline");
+            JsonNode rootNode = objectMapper.readTree(reportFile);
+            String status = rootNode.path("overall_status").asText("UNKNOWN");
 
-            logger.info("==========================================");
-            logger.info(" QC COMPLETED");
-            logger.info(" Overall Status: {}", overallStatus);
-            logger.info(" Events Found: {}", timeline.size());
-            logger.info(" Report Location: {}", jsonPath);
-            logger.info("==========================================");
+            logger.info("------------------------------------------");
+            logger.info(" FINAL REPORT SUMMARY");
+            logger.info(" Overall Status: {}", status);
+
+            JsonNode modules = rootNode.path("modules");
+            if (modules.isObject()) {
+                modules.fieldNames().forEachRemaining(moduleName -> {
+                    String modStatus = modules.get(moduleName).path("status").asText();
+                    int eventCount = modules.get(moduleName).path("events").size();
+                    logger.info(" > {}: {} ({} events)", moduleName, modStatus, eventCount);
+                });
+            }
+            logger.info("------------------------------------------");
 
         } catch (Exception e) {
             logger.error("Failed to parse Master JSON", e);
         }
     }
 
-    // Main method for testing
     public static void main(String[] args) {
-        // Ensure you copy your 'video.mp4' to the project root first!
+        // Point to a test video file in your project root
         new WorkflowManager().runQualityControlPipeline("video.mp4");
     }
 }

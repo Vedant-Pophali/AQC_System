@@ -1,0 +1,11 @@
+streamlit
+watchdog
+opencv-python-headless
+numpy
+pandas
+plotly
+easyocr
+torch
+torchvision
+torchaudio
+kaleido

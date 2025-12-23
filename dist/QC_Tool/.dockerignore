@@ -1,0 +1,6 @@
+venv/
+reports/
+__pycache__/
+*.zip
+*.pdf
+.git

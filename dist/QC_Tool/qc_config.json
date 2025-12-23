@@ -1,0 +1,33 @@
+{
+  "general": {
+    "worker_timeout_seconds": 1200
+  },
+  "visual_qc": {
+    "black_frame_threshold": 0.03,
+    "black_pixel_coverage": 0.98
+  },
+  "audio_qc": {
+    "target_lufs": -23.0,
+    "lufs_tolerance": 2.0,
+    "true_peak_max": -1.0
+  },
+  "ocr_extraction": {
+    "confidence_threshold": 0.5,
+    "sampling_interval_seconds": 2.0,
+    "target_width_px": 640,
+    "languages": [
+      "en",
+      "hi"
+    ]
+  },
+  "signal_qc": {
+    "broadcast_safe_y_min": 16,
+    "broadcast_safe_y_max": 235,
+    "saturation_max": 240,
+    "allowed_outlier_percentage": 0.05
+  },
+  "structure_qc": {
+    "strict_mode": true,
+    "check_moov_position": false
+  }
+}
