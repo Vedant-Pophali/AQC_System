@@ -13,7 +13,11 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libtesseract-dev \
     qctools \
+    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME (Required for Spark)
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 # 4. Set Work Directory
 WORKDIR /app

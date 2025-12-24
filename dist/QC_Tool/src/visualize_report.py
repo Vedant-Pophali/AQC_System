@@ -42,7 +42,25 @@ def create_dashboard(master_report_path, output_path):
             timeline_data.append(dict(Module="Container Structure", Start=0, Duration=video_duration, Status="CRITICAL", Details=err))
         else:
             timeline_data.append(dict(Module="Container Structure", Start=0, Duration=video_duration, Status="PASSED", Details="Valid Structure"))
+    # --- 1.10 ARTIFACTS (Gold) ---
+    if "artifact_qc" in modules:
+        m = modules["artifact_qc"]
+        status = m.get("status")
 
+        if status == "WARNING" or status == "REJECTED":
+            # Extract first event detail
+            detail = m.get("events", [{}])[0].get("details", "Quality Issues")
+            timeline_data.append(dict(Module="Digital Quality", Start=0, Duration=video_duration, Status="WARNING", Details=detail))
+        else:
+            # Show the metrics in the success bar
+            metrics = m.get("metrics", {})
+            timeline_data.append(dict(
+                Module="Digital Quality",
+                Start=0,
+                Duration=video_duration,
+                Status="PASSED",
+                Details=f"Crisp Image (Blur: {int(metrics.get('avg_blur',0))})"
+            ))
     # 2. VISUAL QC
     if "visual_qc" in modules:
         m = modules["visual_qc"]

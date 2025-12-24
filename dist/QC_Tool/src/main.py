@@ -129,6 +129,8 @@ def main():
     # 6. Broadcast Signal Safety
     run_module("validate_signal.py", video_path, os.path.join(reports_dir, "report_signal.json"), timeout)
 
+    # 7. Advanced Visual Artifacts (Blockiness/Blur)
+    run_module("validate_artifacts.py", video_path, os.path.join(reports_dir, "report_artifacts.json"), timeout)
     # [NEW] Phase 6: Automated Self-Healing
     # Checks Audio Report. If REJECTED, it creates a fixed version.
     correction_script = os.path.join(os.path.dirname(__file__), "correct_loudness.py")
@@ -148,6 +150,7 @@ def main():
         "--inputs",
         os.path.join(reports_dir, "report_structure.json"),
         os.path.join(reports_dir, "report_visual.json"),
+        os.path.join(reports_dir, "report_artifacts.json"),
         os.path.join(reports_dir, "report_interlace.json"),
         os.path.join(reports_dir, "report_audio.json"),
         os.path.join(reports_dir, "report_audio_signal.json"),
