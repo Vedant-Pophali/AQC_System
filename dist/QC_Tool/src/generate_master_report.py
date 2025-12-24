@@ -41,7 +41,7 @@ def generate_master(inputs, output_file):
         master["modules"][module] = data
         loaded_count += 1
 
-        # [Enhancement] Console Feedback
+        # Console Feedback
         print(f"      + Loaded [{module}]: {status}")
 
         # 3. Aggregation Logic (Priority: ERROR > REJECTED > WARNING > PASSED)
@@ -52,11 +52,18 @@ def generate_master(inputs, output_file):
         elif status == "WARNING" and master["overall_status"] == "PASSED":
             master["overall_status"] = "WARNING"
 
-        # 4. Attempt to grab metadata from any module that has it
+        # 4. Attempt to grab metadata from modules
+        # Update filename if still unknown
         if master["metadata"]["filename"] == "Unknown":
             vf = data.get("video_file")
             if vf:
                 master["metadata"]["filename"] = os.path.basename(vf)
+
+        # [IMPROVEMENT] Try to capture Duration from 'metrics' (usually in structure_qc)
+        if master["metadata"]["duration"] == 0:
+            duration = data.get("metrics", {}).get("duration_sec")
+            if duration:
+                master["metadata"]["duration"] = duration
 
     # Fail-safe: If no modules loaded, something is wrong
     if loaded_count == 0:

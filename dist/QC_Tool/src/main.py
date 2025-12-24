@@ -111,13 +111,22 @@ def main():
     # 2. Visual QC
     run_module("detect_black.py", video_path, os.path.join(reports_dir, "report_visual.json"), timeout)
 
-    # 3. Audio QC
+    # 2.5 Interlace Detection (Phase 8)
+    run_module("validate_interlace.py", video_path, os.path.join(reports_dir, "report_interlace.json"), timeout)
+
+    # 3. Audio QC (Loudness)
     run_module("validate_loudness.py", video_path, os.path.join(reports_dir, "report_audio.json"), timeout)
 
-    # 4. OCR Extraction
+    # 3.5 Audio Signal Integrity (Phase 7)
+    run_module("validate_audio_signal.py", video_path, os.path.join(reports_dir, "report_audio_signal.json"), timeout)
+
+    # 4. QCTools Analysis (Phase 9 - Research Pillar 3)
+    run_module("validate_qctools.py", video_path, os.path.join(reports_dir, "report_qctools.json"), timeout)
+
+    # 5. OCR Extraction
     run_module("video_ocr.py", video_path, os.path.join(reports_dir, "report_ocr.json"), timeout)
 
-    # 5. Broadcast Signal Safety
+    # 6. Broadcast Signal Safety
     run_module("validate_signal.py", video_path, os.path.join(reports_dir, "report_signal.json"), timeout)
 
     # [NEW] Phase 6: Automated Self-Healing
@@ -139,7 +148,10 @@ def main():
         "--inputs",
         os.path.join(reports_dir, "report_structure.json"),
         os.path.join(reports_dir, "report_visual.json"),
+        os.path.join(reports_dir, "report_interlace.json"),
         os.path.join(reports_dir, "report_audio.json"),
+        os.path.join(reports_dir, "report_audio_signal.json"),
+        os.path.join(reports_dir, "report_qctools.json"), # Added Correctly Here
         os.path.join(reports_dir, "report_ocr.json"),
         os.path.join(reports_dir, "report_signal.json"),
         "--output", os.path.join(reports_dir, "Master_Report.json")

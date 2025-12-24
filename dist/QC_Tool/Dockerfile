@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsm6 \
     libxext6 \
-    curl \
+    tesseract-ocr \
+    libtesseract-dev \
+    qctools \
     && rm -rf /var/lib/apt/lists/*
 
 # 4. Set Work Directory
