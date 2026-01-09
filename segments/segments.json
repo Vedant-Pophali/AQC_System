@@ -1,0 +1,21 @@
+{
+    "source": "D:\\Java\\AQC_System\\test.mp4",
+    "segment_sec": 300,
+    "total_duration": 369.824,
+    "segments": [
+        {
+            "index": 0,
+            "file": "D:\\Java\\AQC_System\\segments\\seg_000.mp4",
+            "start_sec": 0.0,
+            "end_sec": 300.0,
+            "duration_sec": 300.0
+        },
+        {
+            "index": 1,
+            "file": "D:\\Java\\AQC_System\\segments\\seg_001.mp4",
+            "start_sec": 300.0,
+            "end_sec": 369.824,
+            "duration_sec": 69.824
+        }
+    ]
+}

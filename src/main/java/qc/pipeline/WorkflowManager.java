@@ -3,136 +3,116 @@ package qc.pipeline;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.PumpStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
+import java.awt.Desktop;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.function.Consumer;
 
 public class WorkflowManager {
     private static final Logger logger = LoggerFactory.getLogger(WorkflowManager.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JobExecutor jobExecutor = new JobExecutor();
 
-    // 1. DYNAMICALLY RESOLVE PATHS (No hardcoding)
-    private static final String PROJECT_ROOT = System.getProperty("user.dir");
+    // CONFIGURATION
+    private static final String CONTAINER_NAME = "qc_worker_1";
+    private static final String DOCKER_INPUT_PATH = "/app/temp_upload/test_video.mp4";
+    private static final String DOCKER_JSON_PATH = "/app/reports/Master_Report.json";
+    private static final String DOCKER_HTML_PATH = "/app/reports/dashboard.html";
+    private static final String LOCAL_PROJECT_ROOT = System.getProperty("user.dir");
+    private static final String LOCAL_OUTPUT_DIR = Paths.get(LOCAL_PROJECT_ROOT, "reports").toString();
 
-    // Use the venv Python to ensure libraries (CV2, EasyOCR) are found
-    private static final String PYTHON_EXEC = Paths.get(PROJECT_ROOT, "venv", "Scripts", "python.exe").toString();
+    /**
+     * Now accepts a 'uiLogger' to send messages back to the GUI
+     */
+    public void runQualityControlPipeline(String localVideoName, Consumer<String> uiLogger) {
+        File videoFile = new File(localVideoName);
+        if (!videoFile.exists()) {
+            uiLogger.accept("[ERROR] Video not found: " + localVideoName);
+            return;
+        }
 
-    // The main entry point script
-    private static final String MAIN_SCRIPT = Paths.get(PROJECT_ROOT, "src", "main.py").toString();
+        uiLogger.accept("==========================================");
+        uiLogger.accept(" QC ORCHESTRATOR STARTED");
+        uiLogger.accept(" Target: " + videoFile.getName());
+        uiLogger.accept("==========================================");
 
-    // Where reports will land
-    private static final String OUTPUT_DIR = Paths.get(PROJECT_ROOT, "reports").toString();
+        new File(LOCAL_OUTPUT_DIR).mkdirs();
 
-    public void runQualityControlPipeline(String videoFileName) {
-        String videoPath = Paths.get(videoFileName).toAbsolutePath().toString();
+        // 1. UPLOAD
+        uiLogger.accept("[Step 1/3] Uploading video to Secure Container...");
+        executeDockerCommand("cp", videoFile.getAbsolutePath(), CONTAINER_NAME + ":" + DOCKER_INPUT_PATH);
+        uiLogger.accept("   > Upload Complete.");
 
-        logger.info("==========================================");
-        logger.info(" STARTING QC PIPELINE");
-        logger.info(" Python Engine: {}", PYTHON_EXEC);
-        logger.info(" Target Video:  {}", videoPath);
-        logger.info("==========================================");
+        // 2. ANALYZE
+        uiLogger.accept("[Step 2/3] Triggering Distributed Spark Engine...");
+        uiLogger.accept("   > This may take 30-60 seconds depending on video length.");
+        uiLogger.accept("   > Please wait...");
 
-        // 2. CONSTRUCT THE COMMAND
-        // We call main.py, which handles all sub-modules (Visual, Audio, OCR, Dashboard)
-        CommandLine cmdLine = new CommandLine(PYTHON_EXEC);
-        cmdLine.addArgument(MAIN_SCRIPT);
-        cmdLine.addArgument("--input");
-        cmdLine.addArgument(videoPath, true); // true = handle quoting for spaces
-        cmdLine.addArgument("--output");
-        cmdLine.addArgument(OUTPUT_DIR, true);
+        CommandLine sparkCmd = new CommandLine("docker");
+        sparkCmd.addArgument("exec");
+        sparkCmd.addArgument(CONTAINER_NAME);
+        sparkCmd.addArgument("spark-submit");
+        sparkCmd.addArgument("src/main.py");
+        sparkCmd.addArgument("--input");
+        sparkCmd.addArgument(DOCKER_INPUT_PATH);
+        sparkCmd.addArgument("--output");
+        sparkCmd.addArgument("/app/reports");
 
-        // 3. EXECUTE
-        int exitCode = executeCommand(cmdLine);
+        JobExecutor.ExecutionResult result = jobExecutor.executeCommand(sparkCmd);
 
-        // 4. PROCESS RESULTS
-        if (exitCode == 0) {
-            String masterReportPath = Paths.get(OUTPUT_DIR, "Master_Report.json").toString();
-            String dashboardPath = Paths.get(OUTPUT_DIR, "dashboard.html").toString();
+        if (result.exitCode == 0) {
+            uiLogger.accept("   > Engine Analysis Finished.");
 
-            logger.info("[SUCCESS] Pipeline finished. Parsing results...");
-            parseAndPrintResult(masterReportPath);
+            // 3. DOWNLOAD
+            uiLogger.accept("[Step 3/3] Downloading Intelligence Reports...");
+            String localJsonPath = Paths.get(LOCAL_OUTPUT_DIR, "Master_Report.json").toString();
+            String localHtmlPath = Paths.get(LOCAL_OUTPUT_DIR, "dashboard.html").toString();
 
-            // Auto-open dashboard
+            executeDockerCommand("cp", CONTAINER_NAME + ":" + DOCKER_JSON_PATH, localJsonPath);
+            executeDockerCommand("cp", CONTAINER_NAME + ":" + DOCKER_HTML_PATH, localHtmlPath);
+
+            uiLogger.accept("   > Reports Saved to: " + LOCAL_OUTPUT_DIR);
+
+            // 4. PARSE & DISPLAY
             try {
-                logger.info("Opening Dashboard: {}", dashboardPath);
-                Runtime.getRuntime().exec("cmd /c start " + dashboardPath);
+                JsonNode root = objectMapper.readTree(new File(localJsonPath));
+                String status = root.path("overall_status").asText("UNKNOWN");
+                uiLogger.accept("------------------------------------------");
+                uiLogger.accept(" FINAL VERDICT: " + status);
+                uiLogger.accept("------------------------------------------");
             } catch (Exception e) {
-                logger.warn("Could not auto-open browser: " + e.getMessage());
+                uiLogger.accept("[WARN] Could not parse summary text.");
             }
+
+            openDashboard(localHtmlPath, uiLogger);
+
         } else {
-            logger.error("[FAILURE] Pipeline exited with code {}", exitCode);
+            uiLogger.accept("[FAILURE] Spark Engine Crashed.");
+            uiLogger.accept("STDERR: " + result.errorLogs);
         }
     }
 
-    private int executeCommand(CommandLine cmdLine) {
-        DefaultExecutor executor = new DefaultExecutor();
-
-        // Capture output to log it in real-time or debug
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        ByteArrayOutputStream errStream = new ByteArrayOutputStream();
-        PumpStreamHandler streamHandler = new PumpStreamHandler(outStream, errStream);
-        executor.setStreamHandler(streamHandler);
-
-        // Allow non-zero exit codes to be handled manually
-        executor.setExitValues(null);
-
-        try {
-            int exitValue = executor.execute(cmdLine);
-
-            // Print Python logs to Java Logger
-            logger.info("--- PYTHON LOGS ---");
-            logger.info(outStream.toString());
-
-            if (exitValue != 0) {
-                logger.error("--- PYTHON ERRORS ---");
-                logger.error(errStream.toString());
-            }
-
-            return exitValue;
-        } catch (IOException e) {
-            logger.error("Execution failed", e);
-            return -1;
+    private void executeDockerCommand(String... args) {
+        CommandLine cmd = new CommandLine("docker");
+        for (String arg : args) cmd.addArgument(arg);
+        JobExecutor.ExecutionResult res = jobExecutor.executeCommand(cmd);
+        if (res.exitCode != 0) {
+            throw new RuntimeException("Docker failure: " + res.errorLogs);
         }
     }
 
-    private void parseAndPrintResult(String jsonPath) {
+    private void openDashboard(String htmlPath, Consumer<String> uiLogger) {
         try {
-            File reportFile = new File(jsonPath);
-            if (!reportFile.exists()) {
-                logger.error("Report file not found: {}", jsonPath);
-                return;
+            File htmlFile = new File(htmlPath);
+            if (htmlFile.exists() && Desktop.isDesktopSupported()) {
+                uiLogger.accept("[INFO] Launching Browser Dashboard...");
+                Desktop.getDesktop().browse(htmlFile.toURI());
             }
-
-            JsonNode rootNode = objectMapper.readTree(reportFile);
-            String status = rootNode.path("overall_status").asText("UNKNOWN");
-
-            logger.info("------------------------------------------");
-            logger.info(" FINAL REPORT SUMMARY");
-            logger.info(" Overall Status: {}", status);
-
-            JsonNode modules = rootNode.path("modules");
-            if (modules.isObject()) {
-                modules.fieldNames().forEachRemaining(moduleName -> {
-                    String modStatus = modules.get(moduleName).path("status").asText();
-                    int eventCount = modules.get(moduleName).path("events").size();
-                    logger.info(" > {}: {} ({} events)", moduleName, modStatus, eventCount);
-                });
-            }
-            logger.info("------------------------------------------");
-
         } catch (Exception e) {
-            logger.error("Failed to parse Master JSON", e);
+            uiLogger.accept("[WARN] Browser auto-launch failed.");
         }
-    }
-
-    public static void main(String[] args) {
-        // Point to a test video file in your project root
-        new WorkflowManager().runQualityControlPipeline("video.mp4");
     }
 }

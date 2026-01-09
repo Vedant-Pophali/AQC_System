@@ -1,4 +1,5 @@
 package qc.pipeline;
+
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -23,25 +24,20 @@ public class JobExecutor {
         }
     }
 
-    /**
-     * Executes a CLI command and returns the result/logs.
-     */
-    public ExecutionResult executeCommand(String commandLineString) {
-        CommandLine cmdLine = CommandLine.parse(commandLineString);
+    public ExecutionResult executeCommand(CommandLine cmdLine) {
         DefaultExecutor executor = new DefaultExecutor();
-
-        // --- STREAM GOBBLING (Crucial) ---
-        // We capture stdout and stderr into streams so the Python script doesn't hang waiting for buffer space.
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+
+        // This captures the text output from the command so Java can read it
         PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream, errorStream);
         executor.setStreamHandler(streamHandler);
 
-        // Don't throw exception on non-zero exit codes (we want to handle them manually)
+        // Don't crash Java if the command fails (we handle it manually)
         executor.setExitValues(null);
 
         try {
-            logger.info("Executing: {}", commandLineString);
+            logger.info("Executing: " + cmdLine.toString());
             int exitValue = executor.execute(cmdLine);
             return new ExecutionResult(exitValue, outputStream.toString(), errorStream.toString());
         } catch (IOException e) {

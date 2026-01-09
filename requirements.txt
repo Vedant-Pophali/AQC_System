@@ -1,0 +1,11 @@
+streamlit
+opencv-python-headless
+numpy
+pandas
+plotly
+ffmpeg-python
+pyspark
+lxml
+easyocr
+torch
+torchvision
