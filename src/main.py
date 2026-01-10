@@ -2,7 +2,7 @@ import argparse
 import subprocess
 import sys
 import os
-import webbrowser  # <--- Added to handle browser opening
+import webbrowser  # Added to handle browser opening
 from pathlib import Path
 import json
 import time
@@ -13,14 +13,24 @@ import time
 # Registry of active validators
 # Format: (category_folder, module_filename_without_extension)
 VALIDATORS = [
-    ("structure", "validate_structure"),       # Structure & Metadata
+    # 1. Hygiene & Metadata
+    ("structure", "validate_structure"),       # File Integrity, Tracks, Timecode
+
+    # 2. Structural Integrity (The "Hard" QC)
+    ("video", "validate_frames"),              # Bitstream Continuity (PTS/DTS, Drops)
+    ("video", "validate_analog"),              # Analog Defects (VREP / Head Clog)
+
+    # 3. Visual Defects
     ("video", "validate_black_freeze"),        # Black & Freeze Frames
-    ("video", "validate_interlace"),           # Field-level Interlacing
-    ("video", "validate_avsync"),              # Audio/Video Sync
+    ("video", "validate_interlace"),           # Field-level Interlacing (PSNR)
+    ("video", "validate_artifacts"),           # Blockiness (ML/Heuristic)
+
+    # 4. Audio Quality
     ("audio", "validate_loudness"),            # EBU R.128 Loudness
-    ("audio", "validate_audio_signal"),        # Phase & Distortion
-    ("signal", "validate_qctools"),            # VREP / Analog Errors
-    ("signal", "validate_artifacts"),          # Blockiness (ML/Heuristic)
+    ("audio", "validate_audio_signal"),        # Phase, Distortion, Silence
+
+    # 5. Synchronization
+    ("video", "validate_avsync"),              # A/V Timestamp Drift
 ]
 
 # -------------------------------------------------
@@ -43,26 +53,29 @@ def run_validator(category, module, input_video, outdir, mode):
 
     start = time.time()
     try:
+        # Run the module as a subprocess
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         duration = round(time.time() - start, 2)
         
-        # Check if report exists to confirm execution
+        # Check execution status
         if not report_path.exists():
             status = "CRASHED"
         elif result.returncode != 0:
             status = "ERROR" 
         else:
-            # Quick peek at status inside json
+            # Quick peek at status inside the generated JSON
             try:
-                with open(report_path, "r") as f:
+                with open(report_path, "r", encoding="utf-8") as f:
                     d = json.load(f)
-                    status = d.get("status", "UNKNOWN")
+                    status = d.get("effective_status", d.get("status", "UNKNOWN"))
             except:
                 status = "CORRUPT"
+                
     except Exception as e:
         duration = 0.0
         status = f"EXEC_FAIL: {e}"
 
+    # Print a nice table row
     print(f" + {module:<30} | {status:<10} | {duration}s")
 
     return {
@@ -115,11 +128,12 @@ def main():
     print(f"Input    : {input_video}")
     print(f"Output   : {outdir}")
     print(f"Mode     : {args.mode}")
-    print(f"Auto-Fix: {'ON' if args.fix else 'OFF'}")
+    print(f"Auto-Fix : {'ON' if args.fix else 'OFF'}")
     print("=" * 40 + "\n")
 
     results = []
 
+    # 1. EXECUTE MODULES
     print("--- MODULE EXECUTION ---")
     for category, module in VALIDATORS:
         res = run_validator(
@@ -140,7 +154,7 @@ def main():
 
     if reports:
         print("\n--- GENERATING REPORTS ---")
-        # 1. Master JSON
+        # 2. Generate Master JSON
         subprocess.run([
             sys.executable,
             "-m",
@@ -151,7 +165,7 @@ def main():
         ])
         print(f" [OK] Master Report: {master_report_path}")
 
-        # 2. Visualization Dashboard
+        # 3. Generate Visualization Dashboard
         subprocess.run([
             sys.executable,
             "-m",
@@ -167,10 +181,12 @@ def main():
         if args.fix:
             # Check Master Report for Audio Failures
             try:
-                with open(master_report_path, "r") as f:
+                with open(master_report_path, "r", encoding="utf-8") as f:
                     master = json.load(f)
                 
-                audio_status = master.get("modules", {}).get("audio_qc", {}).get("effective_status", "PASSED")
+                # Check if "validate_loudness" failed
+                audio_module = master.get("modules", {}).get("validate_loudness", {})
+                audio_status = audio_module.get("effective_status", "PASSED")
                 
                 if audio_status in ["REJECTED", "WARNING"]:
                     print(f"\n[!] Audio QC Status is {audio_status}. Initiating repair...")
