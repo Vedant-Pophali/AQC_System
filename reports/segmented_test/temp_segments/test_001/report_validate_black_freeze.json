@@ -1,0 +1,10 @@
+{
+    "module": "black_freeze_qc",
+    "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_001.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "black_events": 0,
+        "freeze_events": 0
+    },
+    "events": []
+}

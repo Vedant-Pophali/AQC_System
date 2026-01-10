@@ -3,74 +3,122 @@ import json
 import argparse
 import os
 import sys
+from pathlib import Path
 
-def correct_loudness(input_path, report_path, config_path):
-    print(f"[INFO] Healer: Checking if audio needs correction...")
+# UTF-8 safety (Windows)
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
-    # 1. Check the Audio Report
-    # We only run if the Audio QC module said "REJECTED"
-    try:
-        with open(report_path, 'r', encoding='utf-8') as f:
-            audio_data = json.load(f)
-            status = audio_data.get("status", "UNKNOWN")
-    except Exception as e:
-        print(f"[WARN] Could not read audio report: {e}")
-        return
+# -------------------------
+# CONSTANTS
+# -------------------------
+# Default targets from EBU R.128 / Research Source [146, 216]
+TARGET_I = -23.0
+TARGET_TP = -1.0
+TARGET_LRA = 7.0  # Standard broadcast range
 
-    if status != "REJECTED":
-        print("[INFO] Audio is valid. No correction needed.")
-        return
-
-    # 2. Prepare Output Path (e.g., video_corrected.mp4)
-    dirname, filename = os.path.split(input_path)
-    name, ext = os.path.splitext(filename)
-    output_filename = f"{name}_corrected{ext}"
-    output_path = os.path.join(dirname, output_filename)
-
-    print(f"[ACTION] Fixing Loudness for: {filename}")
-    print(f"         Target: EBU R.128 (-23 LUFS)")
-    print(f"         Output: {output_filename}")
-
-    # 3. The "Magic" FFmpeg Command (Loudnorm)
-    # This filter measures and adjusts audio in one go to hit -23 LUFS
+def measure_loudness(input_path):
+    """
+    PASS 1: Measurement
+    Runs the loudnorm filter in print_format=json mode to extract
+    integrated loudness (I), True Peak (TP), LRA, and Thresholds.
+    """
     cmd = [
         "ffmpeg",
-        "-y",                   # Overwrite output
-        "-v", "error",          # Quiet mode
-        "-i", input_path,       # Input file
-        "-af", "loudnorm=I=-23:LRA=7:TP=-2.0", # The Normalization Filter
-        "-c:v", "copy",         # Don't touch the video (faster)
-        "-c:a", "aac",          # Re-encode audio to apply changes
-        "-b:a", "192k",         # Good bitrate
+        "-i", input_path,
+        "-af", f"loudnorm=I={TARGET_I}:TP={TARGET_TP}:LRA={TARGET_LRA}:print_format=json",
+        "-f", "null",
+        "-"
+    ]
+
+    print(f" [INFO] Pass 1: Measuring '{Path(input_path).name}'...")
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+
+        # FFmpeg loudnorm writes JSON to stderr
+        logs = result.stderr
+
+        # Extract JSON block
+        start = logs.rfind("{")
+        end = logs.rfind("}") + 1
+        if start == -1 or end == -1:
+            raise ValueError("Could not find loudnorm JSON output in stderr")
+
+        data = json.loads(logs[start:end])
+        return data
+
+    except Exception as e:
+        print(f" [ERROR] Measurement failed: {e}")
+        return None
+
+def apply_correction(input_path, output_path, measured_stats):
+    """
+    PASS 2: Normalization
+    Feeds the measured stats back into loudnorm for precise linear correction.
+    """
+    # Extract measured values
+    # Note: 'input_i', 'input_tp', etc. come from the JSON output of Pass 1
+    measured_i = measured_stats.get("input_i")
+    measured_tp = measured_stats.get("input_tp")
+    measured_lra = measured_stats.get("input_lra")
+    measured_thresh = measured_stats.get("input_thresh")
+
+    # Construct filter string with measured values
+    # linear=true ensures cleaner processing without dynamic compression artifacts if possible
+    filter_str = (
+        f"loudnorm=I={TARGET_I}:TP={TARGET_TP}:LRA={TARGET_LRA}:"
+        f"measured_I={measured_i}:measured_TP={measured_tp}:"
+        f"measured_LRA={measured_lra}:measured_thresh={measured_thresh}:"
+        "linear=true:print_format=summary"
+    )
+
+    cmd = [
+        "ffmpeg",
+        "-y",               # Overwrite output
+        "-i", input_path,
+        "-af", filter_str,
+        "-c:v", "copy",     # Copy video stream (don't re-encode video)
+        "-c:a", "aac",      # Re-encode audio (required for filter)
+        "-b:a", "192k",     # Standard bitrate
         output_path
     ]
 
+    print(f" [INFO] Pass 2: Normalizing to {output_path}...")
     try:
         subprocess.run(cmd, check=True)
-        print(f"[SUCCESS] Corrected file created: {output_path}")
-
-        # 4. Update the Report to say we fixed it
-        # We re-open the file in Read/Write mode
-        with open(report_path, 'r+', encoding='utf-8') as f:
-            data = json.load(f)
-            data["correction"] = {
-                "status": "FIXED",
-                "new_file": output_path,
-                "note": "Loudness normalized to -23 LUFS via EBU R.128 filter."
-            }
-            # Go back to start of file to overwrite
-            f.seek(0)
-            json.dump(data, f, indent=4)
-            f.truncate()
-
+        print(" [SUCCESS] Normalization complete.")
+        return True
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Correction failed: {e}")
+        print(f" [ERROR] Normalization failed: {e}")
+        return False
+
+def correct_loudness_workflow(input_path, output_path):
+    # 1. Measure
+    stats = measure_loudness(input_path)
+    if not stats:
+        sys.exit(1)
+
+    print(f"    Measured I: {stats.get('input_i')} LUFS")
+    print(f"    Measured TP: {stats.get('input_tp')} dBTP")
+
+    # 2. Correct
+    success = apply_correction(input_path, output_path, stats)
+    if not success:
+        sys.exit(1)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--report", required=True)
-    parser.add_argument("--config", required=True)
+    parser = argparse.ArgumentParser(description="EBU R.128 2-Pass Loudness Correction")
+    parser.add_argument("--input", required=True, help="Input video file")
+    parser.add_argument("--output", required=True, help="Output normalized video file")
+
     args = parser.parse_args()
 
-    correct_loudness(args.input, args.report, args.config)
+    correct_loudness_workflow(args.input, args.output)

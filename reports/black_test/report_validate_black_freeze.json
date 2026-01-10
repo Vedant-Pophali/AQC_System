@@ -1,0 +1,25 @@
+{
+    "module": "black_freeze_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_blackframe.mp4",
+    "status": "REJECTED",
+    "metrics": {
+        "black_events": 1,
+        "freeze_events": 1
+    },
+    "events": [
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 5.0,
+            "end_time": 8.033333,
+            "details": "Black screen detected for 3.033333s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 5.0,
+            "end_time": 8.033333,
+            "details": "Video freeze detected for 3.033333s (Threshold: 2.0s)"
+        }
+    ]
+}

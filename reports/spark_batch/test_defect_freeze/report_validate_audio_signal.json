@@ -1,0 +1,10 @@
+{
+    "module": "audio_signal_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_freeze.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "min_phase": 1.0,
+        "avg_phase": 1.0
+    },
+    "events": []
+}

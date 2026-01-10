@@ -13,7 +13,6 @@ try:
 except Exception:
     pass
 
-
 def get_duration(path):
     try:
         p = subprocess.run(
@@ -31,17 +30,27 @@ def get_duration(path):
     except Exception:
         return 0.0
 
-
 def validate_black_freeze(input_path, output_path, mode):
     # -----------------------------------
-    # PROFILE-DRIVEN THRESHOLDS
+    # CONFIGURATION
     # -----------------------------------
     profile = PROFILES.get(mode, PROFILES[DEFAULT_PROFILE])
-    limits = profile["black_freeze"]
 
-    min_black_dur = limits["min_black_duration_sec"]
-    min_freeze_dur = limits["min_freeze_duration_sec"]
-    pix_th = limits["black_pixel_threshold"]
+    # Black Detect Params [Source: 121]
+    # pic_th: ratio of pixels that must be black (0.98 = 98%)
+    # pix_th: brightness threshold for "black" (0.03 ~ 0.05)
+    # duration: min duration to flag (2.0s to avoid flash cuts)
+    bd_params = profile.get("visual_qc", {})
+    bd_pic_th = bd_params.get("black_pixel_coverage", 0.98)
+    bd_pix_th = bd_params.get("black_frame_threshold", 0.03)
+    bd_min_dur = bd_params.get("min_black_duration", 2.0)
+
+    # Freeze Detect Params
+    # noise: tolerance for noise in "static" scenes (e.g. -60dB)
+    # duration: min freeze duration to flag (e.g. 2.0s)
+    fd_params = profile.get("freeze_qc", {})
+    fd_noise = fd_params.get("noise_tolerance", -60) # dB
+    fd_min_dur = fd_params.get("min_freeze_duration", 2.0)
 
     duration = get_duration(input_path)
 
@@ -50,32 +59,36 @@ def validate_black_freeze(input_path, output_path, mode):
         "video_file": input_path,
         "status": "PASSED",
         "metrics": {
-            "min_black_duration_sec": min_black_dur,
-            "min_freeze_duration_sec": min_freeze_dur,
-            "black_pixel_threshold": pix_th,
-            "profile": mode
+            "black_events": 0,
+            "freeze_events": 0
         },
         "events": []
     }
 
     # -----------------------------------
-    # SINGLE FFmpeg PASS
+    # FFmpeg Filter Execution
     # -----------------------------------
+    # We combine blackdetect and freezedetect in one pass
+    # blackdetect output: black_start:X black_end:Y black_duration:Z
+    # freezedetect output: lavfi.freezedetect.freeze_start: X
+
+    filter_chain = (
+        f"blackdetect=d={bd_min_dur}:pic_th={bd_pic_th}:pix_th={bd_pix_th},"
+        f"freezedetect=n={fd_noise}dB:d={fd_min_dur}"
+    )
+
     cmd = [
         "ffmpeg",
-        "-v", "info",
+        "-v", "info", # Info level needed for blackdetect/freezedetect logs
         "-i", input_path,
-        "-vf",
-        (
-            f"blackdetect=d={min_black_dur}:pix_th={pix_th},"
-            f"freezedetect=n=0.01:d={min_freeze_dur}"
-        ),
+        "-vf", filter_chain,
         "-f", "null",
         "-"
     ]
 
     try:
-        r = subprocess.run(
+        # These filters write to stderr/stdout depending on version, usually stderr
+        result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
@@ -83,42 +96,70 @@ def validate_black_freeze(input_path, output_path, mode):
             errors="replace"
         )
 
-        stderr = r.stderr
+        logs = result.stderr + result.stdout
 
-        # -----------------------------
-        # Parse black segments
-        # -----------------------------
-        for m in re.finditer(
-                r"black_start:(\d+(\.\d+)?)\s+black_end:(\d+(\.\d+)?)",
-                stderr
-        ):
-            start = float(m.group(1))
-            end = float(m.group(3))
+        # -----------------------------------
+        # Parse Black Detect
+        # -----------------------------------
+        # Log line: "black_start:12.5 black_end:14.0 black_duration:1.5"
+        black_matches = re.findall(
+            r"black_start:([0-9\.]+)\s+black_end:([0-9\.]+)\s+black_duration:([0-9\.]+)",
+            logs
+        )
+
+        for start, end, dur in black_matches:
             report["events"].append({
-                "type": "Black Segment",
-                "start_time": start,
-                "end_time": end,
-                "details": "Black video segment detected"
+                "type": "visual_defect",
+                "subtype": "black_frame_sequence",
+                "start_time": float(start),
+                "end_time": float(end),
+                "details": f"Black screen detected for {dur}s (Threshold: {bd_min_dur}s)"
             })
-
-        # -----------------------------
-        # Parse freeze segments
-        # -----------------------------
-        for m in re.finditer(
-                r"freeze_start:(\d+(\.\d+)?)\s+freeze_end:(\d+(\.\d+)?)",
-                stderr
-        ):
-            start = float(m.group(1))
-            end = float(m.group(3))
-            report["events"].append({
-                "type": "Frozen Segment",
-                "start_time": start,
-                "end_time": end,
-                "details": "Frozen video segment detected"
-            })
-
-        if report["events"]:
             report["status"] = "REJECTED"
+
+        report["metrics"]["black_events"] = len(black_matches)
+
+        # -----------------------------------
+        # Parse Freeze Detect
+        # -----------------------------------
+        # Log line: "lavfi.freezedetect.freeze_start: 12.0"
+        # Freeze detect logs start/end/duration usually as metadata or separate lines
+        # "freeze_start: 10.5" ... "freeze_end: 15.5" ... "freeze_duration: 5.0"
+
+        # We look for pairs or duration lines.
+        # Simpler approach: regex for duration line which usually comes at end of event
+        freeze_matches = re.findall(
+            r"freeze_start:\s*([0-9\.]+)",
+            logs
+        )
+        freeze_ends = re.findall(
+            r"freeze_end:\s*([0-9\.]+)",
+            logs
+        )
+        freeze_durs = re.findall(
+            r"freeze_duration:\s*([0-9\.]+)",
+            logs
+        )
+
+        # Zip logic can be tricky if logs are interleaved, but usually sequential.
+        # We map based on count.
+        count = min(len(freeze_matches), len(freeze_ends), len(freeze_durs))
+
+        for i in range(count):
+            start = float(freeze_matches[i])
+            end = float(freeze_ends[i])
+            dur = float(freeze_durs[i])
+
+            report["events"].append({
+                "type": "visual_defect",
+                "subtype": "freeze_frame",
+                "start_time": start,
+                "end_time": end,
+                "details": f"Video freeze detected for {dur}s (Threshold: {fd_min_dur}s)"
+            })
+            report["status"] = "REJECTED"
+
+        report["metrics"]["freeze_events"] = count
 
     except Exception as e:
         report["status"] = "ERROR"
@@ -129,27 +170,15 @@ def validate_black_freeze(input_path, output_path, mode):
             "details": str(e)
         })
 
-    # -----------------------------------
-    # CONTRACT FALLBACK (NON-NEGOTIABLE)
-    # -----------------------------------
-    if report["status"] != "PASSED" and not report["events"]:
-        report["events"].append({
-            "type": "black_freeze_failure",
-            "start_time": 0.0,
-            "end_time": duration,
-            "details": (
-                "Black or freeze condition detected "
-                f"(black≥{min_black_dur}s, freeze≥{min_freeze_dur}s)"
-            )
-        })
+    _write(report, output_path)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(report, f, indent=4)
-
+def _write(data, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Black / Freeze QC")
+    parser = argparse.ArgumentParser(description="Black & Freeze Frame QC")
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default=DEFAULT_PROFILE)

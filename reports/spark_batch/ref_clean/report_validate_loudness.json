@@ -1,0 +1,14 @@
+{
+    "module": "audio_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\ref_clean.mp4",
+    "status": "ERROR",
+    "metrics": {},
+    "events": [
+        {
+            "type": "loudness_analysis_error",
+            "start_time": 0.0,
+            "end_time": 0.0,
+            "details": "Failed to parse loudnorm JSON output"
+        }
+    ]
+}

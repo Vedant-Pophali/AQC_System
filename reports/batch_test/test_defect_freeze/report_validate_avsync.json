@@ -1,0 +1,9 @@
+{
+    "module": "avsync_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_freeze.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "av_offset_sec": 0.0
+    },
+    "events": []
+}

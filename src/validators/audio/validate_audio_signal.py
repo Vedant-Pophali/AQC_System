@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import re
+from statistics import mean
 
 from src.config.threshold_registry import PROFILES, DEFAULT_PROFILE
 
@@ -39,20 +40,10 @@ def validate_audio_signal(input_path, output_path, mode):
     profile = PROFILES.get(mode, PROFILES[DEFAULT_PROFILE])
     limits = profile["audio_signal"]
 
-    max_dc_offset = limits["max_dc_offset"]
-    max_clipping_ratio = limits["max_clipping_ratio"]
+    max_dc_offset = limits.get("max_dc_offset", 0.005)
 
-    # -----------------------------------
-    # FFmpeg command
-    # -----------------------------------
-    cmd = [
-        "ffmpeg",
-        "-v", "info",
-        "-i", input_path,
-        "-af", "astats=metadata=1:reset=1,aphasemeter=video=0",
-        "-f", "null",
-        "-"
-    ]
+    # Research: "-1 indicates severe phase cancellation... a critical mixing error"
+    min_phase_threshold = limits.get("min_phase_correlation", -0.8)
 
     report = {
         "module": "audio_signal_qc",
@@ -64,75 +55,112 @@ def validate_audio_signal(input_path, output_path, mode):
 
     duration = get_duration(input_path)
 
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace"
-        )
+    # -----------------------------------
+    # 1. DC OFFSET & PEAK (ASTATS)
+    # -----------------------------------
+    # We run astats separately to keep logs clean
+    cmd_astats = [
+        "ffmpeg",
+        "-v", "error",
+        "-i", input_path,
+        "-af", "astats=metadata=1:reset=1",
+        "-f", "null",
+        "-"
+    ]
 
+    try:
+        result = subprocess.run(cmd_astats, capture_output=True, text=True, encoding="utf-8", errors="replace")
         logs = result.stderr
 
-        # -----------------------------------
-        # DC OFFSET (ASTATS)
-        # -----------------------------------
+        # DC OFFSET
         dc_offsets = re.findall(r"DC offset:\s+([0-9\.\-]+)", logs)
         if dc_offsets:
-            dc_vals = [abs(float(x)) for x in dc_offsets]
-            max_dc = max(dc_vals)
-            report["metrics"]["max_dc_offset"] = max_dc
+            try:
+                dc_vals = [abs(float(x)) for x in dc_offsets if x.strip() not in ['-', '.']]
+                if dc_vals:
+                    max_dc = max(dc_vals)
+                    report["metrics"]["max_dc_offset"] = max_dc
+                    if max_dc > max_dc_offset:
+                        report["status"] = "REJECTED"
+                        report["events"].append({
+                            "type": "audio_signal_defect",
+                            "subtype": "dc_offset",
+                            "details": f"DC Offset {max_dc} exceeds limit {max_dc_offset}"
+                        })
+            except Exception:
+                pass
 
-            if max_dc > max_dc_offset:
-                report["status"] = "REJECTED"
-
-        # -----------------------------------
-        # CLIPPING / DISTORTION (ASTATS)
-        # -----------------------------------
+        # CLIPPING
         peak_levels = re.findall(r"Peak level dB:\s+([0-9\.\-]+)", logs)
         if peak_levels:
-            peak_vals = [float(x) for x in peak_levels]
-            max_peak = max(peak_vals)
-            report["metrics"]["max_peak_db"] = max_peak
+            try:
+                peak_vals = [float(x) for x in peak_levels if x.strip() not in ['-', '.']]
+                if peak_vals:
+                    max_peak = max(peak_vals)
+                    report["metrics"]["max_peak_db"] = max_peak
+                    if max_peak >= 0.0:
+                        report["status"] = "REJECTED"
+                        report["events"].append({
+                            "type": "audio_signal_defect",
+                            "subtype": "clipping",
+                            "details": f"Audio clipping detected. Peak: {max_peak} dB"
+                        })
+            except Exception:
+                pass
 
-            # Peak at or above 0 dBFS implies clipping
-            if max_peak >= 0.0:
-                report["status"] = "REJECTED"
+    except Exception as e:
+        print(f"[WARN] Astats failed: {e}")
 
-        # Optional metric: proportion of clipped frames (best-effort)
-        if peak_levels:
-            clipped = sum(1 for x in peak_levels if float(x) >= 0.0)
-            clip_ratio = clipped / max(len(peak_levels), 1)
-            report["metrics"]["clipping_ratio"] = round(clip_ratio, 4)
+    # -----------------------------------
+    # 2. PHASE CORRELATION (APHASEMETER + AMETADATA)
+    # -----------------------------------
+    # We rely on 'ametadata' to print values to stdout.
+    # Format: lavfi.aphasemeter.phase=0.123
+    cmd_phase = [
+        "ffmpeg",
+        "-v", "error",
+        "-i", input_path,
+        "-af", "aphasemeter=video=0,ametadata=print:key=lavfi.aphasemeter.phase:file=-",
+        "-f", "null",
+        "-"
+    ]
 
-            if clip_ratio > max_clipping_ratio:
-                report["status"] = "REJECTED"
+    try:
+        # ametadata prints to stdout
+        result_phase = subprocess.run(cmd_phase, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        phase_logs = result_phase.stdout
+
+        # Parse: lavfi.aphasemeter.phase=-0.999812
+        phase_vals = re.findall(r"lavfi\.aphasemeter\.phase=\s*([-+]?\d*\.?\d+)", phase_logs)
+
+        if phase_vals:
+            phase_floats = [float(x) for x in phase_vals]
+            if phase_floats:
+                min_phase = min(phase_floats)
+                avg_phase = mean(phase_floats)
+
+                report["metrics"]["min_phase"] = round(min_phase, 4)
+                report["metrics"]["avg_phase"] = round(avg_phase, 4)
+
+                if min_phase < min_phase_threshold:
+                    report["status"] = "REJECTED"
+                    report["events"].append({
+                        "type": "audio_phase_error",
+                        "start_time": 0.0,
+                        "end_time": duration,
+                        "details": f"Severe phase cancellation detected. Min Phase: {min_phase} (Limit: {min_phase_threshold})"
+                    })
+        else:
+            # If still null, it might be mono or silent
+            report["metrics"]["min_phase"] = None
 
     except Exception as e:
         report["status"] = "ERROR"
-        report["events"].append({
-            "type": "audio_signal_analysis_error",
-            "start_time": 0.0,
-            "end_time": duration,
-            "details": str(e)
-        })
+        report["events"].append({"type": "phase_analysis_error", "details": str(e)})
 
     # -----------------------------------
-    # FALLBACK EVENT (CONTRACT ENFORCEMENT)
+    # FINAL WRITE
     # -----------------------------------
-    if report["status"] != "PASSED" and not report["events"]:
-        report["events"].append({
-            "type": "audio_signal_failure",
-            "start_time": 0.0,
-            "end_time": duration,
-            "details": (
-                f"Audio signal defect detected "
-                f"(max_dc_offset={report['metrics'].get('max_dc_offset')}, "
-                f"max_peak_db={report['metrics'].get('max_peak_db')})"
-            )
-        })
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=4)

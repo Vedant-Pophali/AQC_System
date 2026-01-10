@@ -1,0 +1,13 @@
+{
+    "module": "artifact_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\youtube\\Phase_Cancellation_Test.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "method": "Heuristic_Signal_Processing",
+        "avg_blockiness": 2.2482,
+        "max_blockiness": 2.3879,
+        "avg_ringing": 0.3618,
+        "max_ringing": 0.378
+    },
+    "events": []
+}

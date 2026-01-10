@@ -1,0 +1,12 @@
+{
+    "module": "audio_qc",
+    "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_001.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "integrated_lufs": -21.91,
+        "true_peak_db": -6.88,
+        "lra": 9.3,
+        "profile": "strict"
+    },
+    "events": []
+}
