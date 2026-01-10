@@ -1,144 +1,118 @@
-import subprocess
-import json
 import argparse
+import json
+import subprocess
 import os
-import sys
+from pathlib import Path
 
-from src.config.threshold_registry import PROFILES, DEFAULT_PROFILE
-
-# UTF-8 safety (Windows)
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
-
-def get_duration(path):
-    try:
-        p = subprocess.run(
-            [
-                "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "json",
-                path
-            ],
-            capture_output=True,
-            text=True
-        )
-        return float(json.loads(p.stdout)["format"]["duration"])
-    except Exception:
-        return 0.0
-
-
-def validate_loudness(input_path, output_path, mode):
-    # -----------------------------------
-    # RESOLVE THRESHOLDS (PROFILE-DRIVEN)
-    # -----------------------------------
-    profile = PROFILES.get(mode, PROFILES[DEFAULT_PROFILE])
-    limits = profile["loudness"]
-
-    target_lufs = limits["target_lufs"]
-    lufs_tolerance = limits["lufs_tolerance"]
-    true_peak_max = limits["true_peak_max"]
-    lra_max = limits["lra_max"]
-
-    # -----------------------------------
-    # FFmpeg loudnorm command
-    # -----------------------------------
+def check_loudness(input_path):
+    """
+    4.1 Loudness Compliance (EBU R.128)
+    Measures Integrated Loudness (I), Range (LRA), and True Peak (TP).
+    """
+    # We use the 'ebur128' filter with 'peak=true' to get True Peak
     cmd = [
-        "ffmpeg",
-        "-i", input_path,
-        "-af",
-        f"loudnorm=I={target_lufs}:TP={true_peak_max}:LRA={lra_max}:print_format=json",
-        "-f", "null",
-        "-"
+        "ffmpeg", "-nostats",
+        "-i", str(input_path),
+        "-filter_complex", "ebur128=peak=true",
+        "-f", "null", "-"
     ]
-
-    report = {
-        "module": "audio_qc",
-        "video_file": input_path,
-        "status": "PASSED",
-        "metrics": {},
+    
+    report_data = {
+        "integrated_lufs": -99.0,
+        "lra": 0.0,
+        "true_peak_db": -99.0,
         "events": []
     }
 
-    duration = get_duration(input_path)
-
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace"
+        # EBU R.128 analysis writes to stderr
+        process = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
-
-        logs = result.stderr
-        start = logs.rfind("{")
-        end = logs.rfind("}") + 1
-        if start == -1 or end == -1:
-            raise ValueError("Failed to parse loudnorm JSON output")
-
-        data = json.loads(logs[start:end])
-
-        integrated_lufs = float(data.get("input_i"))
-        true_peak = float(data.get("input_tp"))
-        lra = float(data.get("input_lra", 0.0))
-
-        report["metrics"] = {
-            "integrated_lufs": integrated_lufs,
-            "true_peak_db": true_peak,
-            "lra": lra,
-            "profile": mode
-        }
-
-        # -----------------------------------
-        # QC DECISION (PROFILE-DRIVEN)
-        # -----------------------------------
-        if abs(integrated_lufs - target_lufs) > lufs_tolerance:
-            report["status"] = "REJECTED"
-        elif true_peak > true_peak_max:
-            report["status"] = "WARNING"
+        log = process.stderr
+        
+        # Parse the summary at the end of the log
+        # Look for:
+        #   I:         -23.1 LUFS
+        #   LRA:         5.2 LU
+        #   True peak:  -1.5 dBTP
+        
+        lines = log.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line.startswith("I:") and "LUFS" in line:
+                val = line.split("I:")[1].split("LUFS")[0].strip()
+                report_data["integrated_lufs"] = float(val)
+            if line.startswith("LRA:") and "LU" in line:
+                val = line.split("LRA:")[1].split("LU")[0].strip()
+                report_data["lra"] = float(val)
+            if line.startswith("True peak:") and "dBTP" in line:
+                # Sometimes it shows multiple values for multi-channel; take the max (peak)
+                parts = line.split("True peak:")[1].split("dBTP")[0].strip().split()
+                # If multiple channels, find the max peak
+                try:
+                    peaks = [float(p) for p in parts if p]
+                    report_data["true_peak_db"] = max(peaks)
+                except:
+                    pass
 
     except Exception as e:
-        report["status"] = "ERROR"
-        report["events"].append({
-            "type": "loudness_analysis_error",
-            "start_time": 0.0,
-            "end_time": duration,
-            "details": str(e)
+        report_data["events"].append({"type": "execution_error", "details": str(e)})
+
+    return report_data
+
+def run_validator(input_path, output_path, mode="strict"):
+    # Compliance Targets
+    # Strict (Broadcast): -23 LUFS (+/- 1.0), True Peak < -1.0
+    # OTT (Web): -16 LUFS (+/- 2.0), True Peak < -1.0
+    
+    target_i = -23.0 if mode == "strict" else -16.0
+    tolerance = 1.0 if mode == "strict" else 2.0
+    max_tp = -1.0
+    
+    data = check_loudness(input_path)
+    events = data["events"]
+    status = "PASSED"
+    
+    i_val = data["integrated_lufs"]
+    tp_val = data["true_peak_db"]
+    
+    # 1. Check Integrated Loudness
+    if abs(i_val - target_i) > tolerance:
+        status = "REJECTED"
+        events.append({
+            "type": "loudness_violation",
+            "details": f"Integrated Loudness {i_val} LUFS is outside target {target_i} +/- {tolerance}.",
+            "severity": "high"
+        })
+        
+    # 2. Check True Peak
+    if tp_val > max_tp:
+        status = "REJECTED"
+        events.append({
+            "type": "true_peak_violation",
+            "details": f"True Peak {tp_val} dBTP exceeds limit {max_tp} dBTP.",
+            "severity": "high"
         })
 
-    # -----------------------------------
-    # FALLBACK EVENT (CONTRACT ENFORCEMENT)
-    # -----------------------------------
-    if report["status"] != "PASSED" and not report["events"]:
-        report["events"].append({
-            "type": "loudness_failure",
-            "start_time": 0.0,
-            "end_time": duration,
-            "details": (
-                f"Loudness out of range: "
-                f"target={target_lufs} LUFS ±{lufs_tolerance}, "
-                f"TP≤{true_peak_max} dB"
-            )
-        })
-
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
+    report = {
+        "module": "validate_loudness",
+        "status": status,
+        "metrics": {
+            "integrated_lufs": i_val,
+            "lra": data["lra"],
+            "true_peak": tp_val
+        },
+        "events": events
+    }
+    
+    with open(output_path, "w") as f:
         json.dump(report, f, indent=4)
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Audio Loudness QC")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--mode", default=DEFAULT_PROFILE)
+    parser.add_argument("--mode", default="strict")
     args = parser.parse_args()
-
-    validate_loudness(
-        input_path=args.input,
-        output_path=args.output,
-        mode=args.mode
-    )
+    run_validator(args.input, args.output, args.mode)
