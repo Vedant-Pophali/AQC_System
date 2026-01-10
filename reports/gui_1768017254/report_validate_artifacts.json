@@ -1,0 +1,13 @@
+{
+    "module": "artifact_qc",
+    "video_file": "D:\\Java\\AQC_System\\temp_upload\\test.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "method": "Heuristic_Signal_Processing",
+        "avg_blockiness": 2.0807,
+        "max_blockiness": 3.4701,
+        "avg_ringing": 0.2644,
+        "max_ringing": 0.3428
+    },
+    "events": []
+}

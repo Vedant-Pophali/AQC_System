@@ -1,0 +1,7 @@
+{
+    "module": "interlace_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\ref_clean.mp4",
+    "status": "PASSED",
+    "metrics": {},
+    "events": []
+}

@@ -1,0 +1,9 @@
+{
+    "module": "avsync_qc",
+    "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_001.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "av_offset_sec": 0.0
+    },
+    "events": []
+}

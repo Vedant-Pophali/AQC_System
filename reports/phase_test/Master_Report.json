@@ -1,0 +1,120 @@
+{
+    "metadata": {
+        "generated_on": "2026-01-09T18:23:16.960431+00:00",
+        "profile": "strict",
+        "tool": "AQC",
+        "report_hash": "d7a650e8e4d8b609905bf31022189d5a4f1f021e3a1378e12434bf6ea6f13922"
+    },
+    "overall_status": "ERROR",
+    "ci_exit_code": 3,
+    "modules": {
+        "structure_qc": {
+            "module": "structure_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "WARNING",
+            "metrics": {
+                "container": "mov,mp4,m4a,3gp,3g2,mj2",
+                "duration_sec": 15.0,
+                "video_codec": "h264",
+                "resolution": "1280x720",
+                "aspect_ratio": 1.778,
+                "audio_codec": "aac",
+                "channels": 2,
+                "sample_rate": "44100",
+                "channel_layout": "stereo"
+            },
+            "events": [
+                {
+                    "type": "sample_rate_mismatch",
+                    "details": "Sample rate 44100Hz does not match 48000Hz."
+                }
+            ],
+            "effective_status": "WARNING"
+        },
+        "black_freeze_qc": {
+            "module": "black_freeze_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "black_events": 0,
+                "freeze_events": 0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "interlace_qc": {
+            "module": "interlace_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "idet_interlaced_ratio": 0.0,
+                "field_psnr_avg": 32.23
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "avsync_qc": {
+            "module": "avsync_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "av_offset_sec": 0.0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "audio_qc": {
+            "module": "audio_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "REJECTED",
+            "metrics": {
+                "integrated_lufs": -18.07,
+                "true_peak_db": -14.36,
+                "lra": 0.1,
+                "profile": "strict"
+            },
+            "events": [
+                {
+                    "type": "loudness_failure",
+                    "start_time": 0.0,
+                    "end_time": 15.0,
+                    "details": "Loudness out of range: target=-23.0 LUFS \u00b12.0, TP\u2264-1.0 dB"
+                }
+            ],
+            "effective_status": "REJECTED"
+        },
+        "audio_signal_qc": {
+            "module": "audio_signal_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "REJECTED",
+            "metrics": {
+                "min_phase": -1.0,
+                "avg_phase": -1.0
+            },
+            "events": [
+                {
+                    "type": "audio_phase_error",
+                    "start_time": 0.0,
+                    "end_time": 15.0,
+                    "details": "Severe phase cancellation detected. Min Phase: -1.0 (Limit: -0.8)"
+                }
+            ],
+            "effective_status": "REJECTED"
+        },
+        "artifact_qc": {
+            "module": "artifact_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_phase.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "method": "Heuristic_Signal_Processing",
+                "avg_blockiness": 7.6811,
+                "max_blockiness": 8.2529,
+                "avg_ringing": 0.3316,
+                "max_ringing": 0.3498
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        }
+    },
+    "known_deviations": []
+}

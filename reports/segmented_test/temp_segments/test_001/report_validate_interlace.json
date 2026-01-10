@@ -1,0 +1,15 @@
+{
+    "module": "interlace_qc",
+    "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_001.mp4",
+    "status": "REJECTED",
+    "metrics": {
+        "idet_interlaced_ratio": 0.0,
+        "field_psnr_avg": 27.11
+    },
+    "events": [
+        {
+            "type": "interlace_field_divergence",
+            "details": "High Field Divergence detected. PSNR: 27.11 dB (Threshold: 30.0 dB). Possible combing artifacts."
+        }
+    ]
+}

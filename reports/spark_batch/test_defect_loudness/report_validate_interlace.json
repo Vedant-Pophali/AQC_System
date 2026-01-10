@@ -1,0 +1,10 @@
+{
+    "module": "interlace_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_loudness.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "idet_interlaced_ratio": 0.0,
+        "field_psnr_avg": 32.23
+    },
+    "events": []
+}

@@ -1,0 +1,10 @@
+{
+    "module": "audio_signal_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\youtube\\Old_VHS_Footage.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "min_phase": -0.352,
+        "avg_phase": 0.9156
+    },
+    "events": []
+}

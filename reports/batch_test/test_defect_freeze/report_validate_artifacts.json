@@ -1,0 +1,13 @@
+{
+    "module": "artifact_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_freeze.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "method": "Heuristic_Signal_Processing",
+        "avg_blockiness": 7.6005,
+        "max_blockiness": 8.2532,
+        "avg_ringing": 0.3311,
+        "max_ringing": 0.3497
+    },
+    "events": []
+}

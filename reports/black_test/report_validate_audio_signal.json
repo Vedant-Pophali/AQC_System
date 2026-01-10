@@ -1,0 +1,11 @@
+{
+    "module": "audio_signal_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\test_defect_blackframe.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "max_dc_offset": 0.000921,
+        "max_peak_db": -14.363232,
+        "min_phase": null
+    },
+    "events": []
+}

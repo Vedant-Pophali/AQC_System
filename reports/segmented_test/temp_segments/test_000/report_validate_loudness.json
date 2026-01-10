@@ -1,0 +1,19 @@
+{
+    "module": "audio_qc",
+    "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+    "status": "REJECTED",
+    "metrics": {
+        "integrated_lufs": -20.96,
+        "true_peak_db": -6.68,
+        "lra": 9.5,
+        "profile": "strict"
+    },
+    "events": [
+        {
+            "type": "loudness_failure",
+            "start_time": 0.0,
+            "end_time": 304.901224,
+            "details": "Loudness out of range: target=-23.0 LUFS \u00b12.0, TP\u2264-1.0 dB"
+        }
+    ]
+}

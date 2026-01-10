@@ -1,0 +1,118 @@
+{
+    "metadata": {
+        "generated_on": "2026-01-10T04:01:17.411496+00:00",
+        "profile": "strict",
+        "tool": "AQC",
+        "report_hash": "b754b056375cb830678543ddf22a1e6df022a5b26c0fca31e8bc18df06a7ceb2"
+    },
+    "overall_status": "REJECTED",
+    "ci_exit_code": 1,
+    "modules": {
+        "structure_qc": {
+            "module": "structure_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "WARNING",
+            "metrics": {
+                "container": "mov,mp4,m4a,3gp,3g2,mj2",
+                "duration_sec": 304.901224,
+                "video_codec": "h264",
+                "resolution": "640x360",
+                "aspect_ratio": 1.778,
+                "audio_codec": "aac",
+                "channels": 2,
+                "sample_rate": "44100",
+                "channel_layout": "stereo"
+            },
+            "events": [
+                {
+                    "type": "sample_rate_mismatch",
+                    "details": "Sample rate 44100Hz does not match 48000Hz."
+                }
+            ],
+            "effective_status": "WARNING"
+        },
+        "black_freeze_qc": {
+            "module": "black_freeze_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "black_events": 0,
+                "freeze_events": 0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "interlace_qc": {
+            "module": "interlace_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "REJECTED",
+            "metrics": {
+                "idet_interlaced_ratio": 0.0,
+                "field_psnr_avg": 23.39
+            },
+            "events": [
+                {
+                    "type": "interlace_field_divergence",
+                    "details": "High Field Divergence detected. PSNR: 23.39 dB (Threshold: 30.0 dB). Possible combing artifacts."
+                }
+            ],
+            "effective_status": "REJECTED"
+        },
+        "avsync_qc": {
+            "module": "avsync_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "av_offset_sec": 0.0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "audio_qc": {
+            "module": "audio_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "REJECTED",
+            "metrics": {
+                "integrated_lufs": -20.96,
+                "true_peak_db": -6.68,
+                "lra": 9.5,
+                "profile": "strict"
+            },
+            "events": [
+                {
+                    "type": "loudness_failure",
+                    "start_time": 0.0,
+                    "end_time": 304.901224,
+                    "details": "Loudness out of range: target=-23.0 LUFS \u00b12.0, TP\u2264-1.0 dB"
+                }
+            ],
+            "effective_status": "REJECTED"
+        },
+        "audio_signal_qc": {
+            "module": "audio_signal_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "min_phase": 0.2477,
+                "avg_phase": 0.759
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "artifact_qc": {
+            "module": "artifact_qc",
+            "video_file": "D:\\Java\\AQC_System\\reports\\segmented_test\\temp_segments\\test_000.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "method": "Heuristic_Signal_Processing",
+                "avg_blockiness": 2.0809,
+                "max_blockiness": 3.4701,
+                "avg_ringing": 0.2657,
+                "max_ringing": 0.3428
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        }
+    },
+    "known_deviations": []
+}

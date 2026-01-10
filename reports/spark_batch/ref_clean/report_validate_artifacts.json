@@ -1,0 +1,9 @@
+{
+    "module": "artifact_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\ref_clean.mp4",
+    "status": "ERROR",
+    "metrics": {
+        "method": "Heuristic_Signal_Processing"
+    },
+    "events": []
+}

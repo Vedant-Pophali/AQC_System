@@ -1,0 +1,557 @@
+{
+    "module": "black_freeze_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\youtube\\Old_VHS_Footage.mp4",
+    "status": "REJECTED",
+    "metrics": {
+        "black_events": 10,
+        "freeze_events": 68
+    },
+    "events": [
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 35.1351,
+            "end_time": 47.013633,
+            "details": "Black screen detected for 11.878533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 56.990267,
+            "end_time": 61.528133,
+            "details": "Black screen detected for 4.537867s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 300.033067,
+            "end_time": 306.7064,
+            "details": "Black screen detected for 6.673333s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 318.7184,
+            "end_time": 329.896233,
+            "details": "Black screen detected for 11.177833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 338.4381,
+            "end_time": 344.9446,
+            "details": "Black screen detected for 6.5065s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 349.5492,
+            "end_time": 374.140433,
+            "details": "Black screen detected for 24.591233s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 425.258167,
+            "end_time": 436.369267,
+            "details": "Black screen detected for 11.1111s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 473.739933,
+            "end_time": 480.48,
+            "details": "Black screen detected for 6.740067s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 483.8834,
+            "end_time": 523.456267,
+            "details": "Black screen detected for 39.572867s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "black_frame_sequence",
+            "start_time": 535.9354,
+            "end_time": 573.940033,
+            "details": "Black screen detected for 38.004633s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 0.934267,
+            "end_time": 9.142467,
+            "details": "Video freeze detected for 8.2082s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 35.1351,
+            "end_time": 47.013633,
+            "details": "Video freeze detected for 11.878533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 53.8538,
+            "end_time": 56.5565,
+            "details": "Video freeze detected for 2.7027s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 56.990267,
+            "end_time": 61.528133,
+            "details": "Video freeze detected for 4.537867s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 149.482667,
+            "end_time": 154.821333,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 154.821333,
+            "end_time": 160.16,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 160.16,
+            "end_time": 165.498667,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 167.500667,
+            "end_time": 170.837333,
+            "details": "Video freeze detected for 3.336667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 178.011167,
+            "end_time": 181.514667,
+            "details": "Video freeze detected for 3.5035s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 181.514667,
+            "end_time": 185.6855,
+            "details": "Video freeze detected for 4.170833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 186.853333,
+            "end_time": 191.224367,
+            "details": "Video freeze detected for 4.371033s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 209.242367,
+            "end_time": 213.546667,
+            "details": "Video freeze detected for 4.3043s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 213.546667,
+            "end_time": 216.049167,
+            "details": "Video freeze detected for 2.5025s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 216.049167,
+            "end_time": 218.885333,
+            "details": "Video freeze detected for 2.836167s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 218.885333,
+            "end_time": 224.224,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 240.24,
+            "end_time": 245.578667,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 300.466833,
+            "end_time": 303.636667,
+            "details": "Video freeze detected for 3.169833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 303.936967,
+            "end_time": 306.739767,
+            "details": "Video freeze detected for 2.8028s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 307.140167,
+            "end_time": 309.242267,
+            "details": "Video freeze detected for 2.1021s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 312.779133,
+            "end_time": 315.348367,
+            "details": "Video freeze detected for 2.569233s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 318.7184,
+            "end_time": 323.0227,
+            "details": "Video freeze detected for 4.3043s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 324.4241,
+            "end_time": 329.4291,
+            "details": "Video freeze detected for 5.005s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 330.997333,
+            "end_time": 333.8335,
+            "details": "Video freeze detected for 2.836167s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 338.4381,
+            "end_time": 341.674667,
+            "details": "Video freeze detected for 3.236567s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 341.8415,
+            "end_time": 344.8445,
+            "details": "Video freeze detected for 3.003s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 345.178167,
+            "end_time": 349.415733,
+            "details": "Video freeze detected for 4.237567s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 349.7494,
+            "end_time": 353.619933,
+            "details": "Video freeze detected for 3.870533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 354.020333,
+            "end_time": 357.790767,
+            "details": "Video freeze detected for 3.770433s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 358.0577,
+            "end_time": 361.928233,
+            "details": "Video freeze detected for 3.870533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 362.228533,
+            "end_time": 374.107067,
+            "details": "Video freeze detected for 11.878533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 374.841133,
+            "end_time": 379.045333,
+            "details": "Video freeze detected for 4.2042s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 380.8805,
+            "end_time": 384.384,
+            "details": "Video freeze detected for 3.5035s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 384.384,
+            "end_time": 387.220167,
+            "details": "Video freeze detected for 2.836167s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 387.420367,
+            "end_time": 389.722667,
+            "details": "Video freeze detected for 2.3023s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 395.061333,
+            "end_time": 400.133067,
+            "details": "Video freeze detected for 5.071733s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 400.4,
+            "end_time": 405.738667,
+            "details": "Video freeze detected for 5.338667s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 405.738667,
+            "end_time": 412.1117,
+            "details": "Video freeze detected for 6.373033s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 412.779033,
+            "end_time": 416.416,
+            "details": "Video freeze detected for 3.636967s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 418.684933,
+            "end_time": 421.754667,
+            "details": "Video freeze detected for 3.069733s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 421.754667,
+            "end_time": 424.657567,
+            "details": "Video freeze detected for 2.9029s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 425.291533,
+            "end_time": 427.794033,
+            "details": "Video freeze detected for 2.5025s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 427.794033,
+            "end_time": 431.964867,
+            "details": "Video freeze detected for 4.170833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 431.964867,
+            "end_time": 436.068967,
+            "details": "Video freeze detected for 4.1041s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 438.604833,
+            "end_time": 441.374267,
+            "details": "Video freeze detected for 2.769433s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 445.278167,
+            "end_time": 448.448,
+            "details": "Video freeze detected for 3.169833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 450.216433,
+            "end_time": 453.786667,
+            "details": "Video freeze detected for 3.570233s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 455.621833,
+            "end_time": 458.391267,
+            "details": "Video freeze detected for 2.769433s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 459.125333,
+            "end_time": 463.196067,
+            "details": "Video freeze detected for 4.070733s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 466.032233,
+            "end_time": 468.0676,
+            "details": "Video freeze detected for 2.035367s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 469.802667,
+            "end_time": 473.2728,
+            "details": "Video freeze detected for 3.470133s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 475.708567,
+            "end_time": 478.110967,
+            "details": "Video freeze detected for 2.4024s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 478.110967,
+            "end_time": 480.48,
+            "details": "Video freeze detected for 2.369033s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 480.7803,
+            "end_time": 483.516367,
+            "details": "Video freeze detected for 2.736067s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 483.916767,
+            "end_time": 488.221067,
+            "details": "Video freeze detected for 4.3043s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 488.5881,
+            "end_time": 492.425267,
+            "details": "Video freeze detected for 3.837167s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 492.725567,
+            "end_time": 496.562733,
+            "details": "Video freeze detected for 3.837167s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 496.762933,
+            "end_time": 503.369533,
+            "details": "Video freeze detected for 6.6066s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 504.670833,
+            "end_time": 511.744567,
+            "details": "Video freeze detected for 7.073733s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 512.178333,
+            "end_time": 515.348167,
+            "details": "Video freeze detected for 3.169833s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 515.681833,
+            "end_time": 523.456267,
+            "details": "Video freeze detected for 7.774433s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 523.890033,
+            "end_time": 528.528,
+            "details": "Video freeze detected for 4.637967s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 529.495633,
+            "end_time": 532.265067,
+            "details": "Video freeze detected for 2.769433s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 535.9354,
+            "end_time": 539.6391,
+            "details": "Video freeze detected for 3.7037s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 539.906033,
+            "end_time": 543.776567,
+            "details": "Video freeze detected for 3.870533s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 544.544,
+            "end_time": 549.0485,
+            "details": "Video freeze detected for 4.5045s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 549.3488,
+            "end_time": 555.788567,
+            "details": "Video freeze detected for 6.439767s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 556.022133,
+            "end_time": 564.1636,
+            "details": "Video freeze detected for 8.141467s (Threshold: 2.0s)"
+        },
+        {
+            "type": "visual_defect",
+            "subtype": "freeze_frame",
+            "start_time": 564.430533,
+            "end_time": 573.6731,
+            "details": "Video freeze detected for 9.242567s (Threshold: 2.0s)"
+        }
+    ]
+}

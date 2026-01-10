@@ -1,0 +1,9 @@
+{
+    "module": "avsync_qc",
+    "video_file": "D:\\Java\\AQC_System\\test_media\\youtube\\Old_VHS_Footage.mp4",
+    "status": "PASSED",
+    "metrics": {
+        "av_offset_sec": 0.0
+    },
+    "events": []
+}
