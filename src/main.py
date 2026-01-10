@@ -16,21 +16,22 @@ VALIDATORS = [
     # 1. Hygiene & Metadata
     ("structure", "validate_structure"),       # File Integrity, Tracks, Timecode
 
-    # 2. Structural Integrity (The "Hard" QC)
-    ("video", "validate_frames"),              # Bitstream Continuity (PTS/DTS, Drops)
-    ("video", "validate_analog"),              # Analog Defects (VREP / Head Clog)
+    # 2. Structural Integrity
+    ("video", "validate_frames"),              # Bitstream Continuity
+    ("video", "validate_analog"),              # Analog Defects (VREP)
 
-    # 3. Visual Defects
-    ("video", "validate_black_freeze"),        # Black & Freeze Frames
-    ("video", "validate_interlace"),           # Field-level Interlacing (PSNR)
-    ("video", "validate_artifacts"),           # Blockiness (ML/Heuristic)
+    # 3. Visual Defects (NOW COMPLETE)
+    ("video", "validate_black_freeze"),        # Black/Freeze/Fade
+    ("video", "validate_interlace"),           # Fields & Combing
+    ("video", "validate_artifacts"),           # Compression/Bitrate
+    ("video", "validate_geometry"),            # Crop/Letterbox Detection
 
     # 4. Audio Quality
-    ("audio", "validate_loudness"),            # EBU R.128 Loudness
-    ("audio", "validate_audio_signal"),        # Phase, Distortion, Silence
+    ("audio", "validate_loudness"),            # EBU R.128
+    ("audio", "validate_audio_signal"),        # Phase, Distortion
 
     # 5. Synchronization
-    ("video", "validate_avsync"),              # A/V Timestamp Drift
+    ("video", "validate_avsync"),              # Timestamp Drift
 ]
 
 # -------------------------------------------------
