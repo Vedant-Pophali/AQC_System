@@ -1,6 +1,0 @@
-Filename,Status,Defects,Duration (s),Path
-test_defect_blackframe.mp4,REJECTED,"fade_out, freeze_frame, video_freeze",86.14,/data/input/test_defect_blackframe.mp4
-test_defect_freeze.mp4,REJECTED,"freeze_frame, video_freeze",86.14,/data/input/test_defect_freeze.mp4
-test_defect_loudness.mp4,REJECTED,loudness_violation,87.3,/data/input/test_defect_loudness.mp4
-test_defect_phase.mp4,REJECTED,"phase_inversion_detected, loudness_violation",27.44,/data/input/test_defect_phase.mp4
-ref_clean.mp4,PASSED,None,87.31,/data/input/ref_clean.mp4

@@ -1,9 +1,0 @@
-{
-    "module": "avsync_qc",
-    "video_file": "D:\\Java\\AQC_System\\test_media\\youtube\\Phase_Cancellation_Test.mp4",
-    "status": "PASSED",
-    "metrics": {
-        "av_offset_sec": 0.0
-    },
-    "events": []
-}
