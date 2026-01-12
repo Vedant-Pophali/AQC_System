@@ -1,0 +1,82 @@
+{
+    "metadata": {
+        "generated_on": "2026-01-10T05:22:53.784675+00:00",
+        "profile": "strict",
+        "tool": "AQC",
+        "report_hash": "0615b81d2d055bfd79b04246d7fdd00aa0c4fb22cf199abb2b18d8dc0deaf0a9"
+    },
+    "overall_status": "REJECTED",
+    "ci_exit_code": 1,
+    "modules": {
+        "validate_frames": {
+            "module": "validate_frames",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_analog": {
+            "module": "validate_analog",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_black_freeze": {
+            "module": "validate_black_freeze",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_interlace": {
+            "module": "validate_interlace",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_artifacts": {
+            "module": "validate_artifacts",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_geometry": {
+            "module": "validate_geometry",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_loudness": {
+            "module": "validate_loudness",
+            "status": "REJECTED",
+            "metrics": {
+                "integrated_lufs": -99.0,
+                "lra": 0.0,
+                "true_peak": -99.0
+            },
+            "events": [
+                {
+                    "type": "loudness_violation",
+                    "details": "Integrated Loudness -99.0 LUFS is outside target -23.0 +/- 1.0.",
+                    "severity": "high"
+                }
+            ],
+            "effective_status": "REJECTED"
+        },
+        "validate_audio_signal": {
+            "module": "validate_audio_signal",
+            "status": "PASSED",
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "avsync_qc": {
+            "module": "avsync_qc",
+            "video_file": "D:\\Java\\AQC_System\\test_media\\ref_clean.mp4",
+            "status": "PASSED",
+            "metrics": {
+                "av_offset_sec": 0.0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        }
+    },
+    "known_deviations": []
+}

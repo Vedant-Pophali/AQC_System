@@ -1,0 +1,14 @@
+{
+    "module": "validate_avsync",
+    "status": "REJECTED",
+    "details": {
+        "offset_ms": -3041.81,
+        "offset_head_ms": -3041.81,
+        "offset_tail_ms": -3041.81,
+        "drift_ms": 0.0,
+        "tolerance_ms": 40.0,
+        "confidence_score": 1.12,
+        "analysis_note": "Offset 3041.81ms exceeds limit"
+    },
+    "effective_status": "REJECTED"
+}

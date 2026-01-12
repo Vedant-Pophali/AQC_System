@@ -1,0 +1,127 @@
+{
+    "timestamp": "Mon Jan 12 13:14:54 2026",
+    "profile": "youtube",
+    "overall_status": "WARNING",
+    "modules": {
+        "validate_structure": {
+            "module": "validate_structure",
+            "status": "PASSED",
+            "metrics": {
+                "container": "mov,mp4,m4a,3gp,3g2,mj2",
+                "duration_sec": 10.0,
+                "bitrate_bps": 6567793,
+                "track_count_video": 1,
+                "track_count_audio": 1,
+                "track_count_subs": 0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_frames": {
+            "module": "validate_frames",
+            "status": "PASSED",
+            "events": [],
+            "metrics": {
+                "duplicate_frame_count": 0,
+                "max_pts_drift_ms": 0.0
+            }
+        },
+        "validate_analog": {
+            "module": "validate_analog",
+            "status": "PASSED",
+            "events": [],
+            "metrics": {
+                "avg_noise_level": 64.27,
+                "max_tbc_skew": 0.0,
+                "flagging_detected": false
+            }
+        },
+        "validate_black_freeze": {
+            "module": "validate_black_freeze",
+            "status": "PASSED",
+            "events": []
+        },
+        "validate_interlace": {
+            "module": "validate_interlace",
+            "status": "PASSED",
+            "metrics": {
+                "avg_field_psnr": 43.98,
+                "avg_field_ssim": 0.997,
+                "avg_temporal_divergence": 14.9,
+                "interlaced_frame_count": 0,
+                "scanned_frames": 120
+            },
+            "events": []
+        },
+        "validate_artifacts": {
+            "module": "validate_artifacts",
+            "status": "PASSED",
+            "events": []
+        },
+        "validate_geometry": {
+            "module": "validate_geometry",
+            "status": "PASSED",
+            "metrics": {
+                "container_res": "1280x720",
+                "sar": "1:1",
+                "metadata_dar": "16:9",
+                "calculated_dar": 1.7778,
+                "active_res": "1280x720",
+                "fill_factor": 1.0
+            },
+            "events": []
+        },
+        "validate_loudness": {
+            "module": "validate_loudness",
+            "status": "PASSED",
+            "metrics": {
+                "integrated_lufs": -14.0,
+                "lra": 0.0,
+                "true_peak": -99.0
+            },
+            "events": []
+        },
+        "validate_audio_signal": {
+            "module": "validate_audio_signal",
+            "status": "PASSED",
+            "metrics": {
+                "dc_offset_max": 0.0,
+                "dynamic_range_db": 0.0,
+                "peak_volume_db": -8.0,
+                "channels": 1
+            },
+            "events": []
+        },
+        "validate_avsync": {
+            "module": "validate_avsync",
+            "status": "WARNING",
+            "details": {
+                "offset_ms": 2786.39,
+                "offset_head_ms": 2786.39,
+                "offset_tail_ms": 2786.39,
+                "drift_ms": 0.0,
+                "tolerance_ms": 40.0,
+                "confidence_score": 15.67,
+                "analysis_note": "Offset 2786.39ms exceeds limit"
+            },
+            "effective_status": "WARNING"
+        }
+    },
+    "aggregated_events": [],
+    "governance": {
+        "active_profile": "youtube",
+        "config_version_hash": "3d631b13",
+        "compliance_standard": "YouTube / Web Upload (Loose)",
+        "licenses": {
+            "AQC_System": "MIT License (Proprietary Logic)",
+            "Dependencies": {
+                "FFmpeg": "LGPL v2.1+ (Media Decoding)",
+                "OpenCV": "Apache 2.0 (Computer Vision)",
+                "Librosa": "ISC License (Audio Analysis)",
+                "NumPy/SciPy": "BSD 3-Clause (Math)",
+                "Plotly": "MIT License (Visualization)"
+            },
+            "Statement": "This tool uses open-source libraries. Ensure FFmpeg is built with non-free flags if checking specific proprietary codecs."
+        }
+    }
+}

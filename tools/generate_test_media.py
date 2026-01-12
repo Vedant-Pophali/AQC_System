@@ -1,82 +1,82 @@
 import subprocess
 import argparse
-import os
+import sys
 from pathlib import Path
 
 def run_ffmpeg(cmd):
-    print(f" [CMD] {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print(f"[!] FFmpeg Failed: {' '.join(cmd)}")
+        print(f"[!] Error: {e.stderr.decode()}")
+        raise e
 
-def generate_test_media(base_video, out_dir):
-    out_dir = Path(out_dir)
-    out_dir.mkdir(exist_ok=True, parents=True)
-
-    # 1. Clean Reference
-    # We assume base_video is a clean 10-20s clip.
-    if not base_video:
-        print("No base video provided. Generating synthetic reference...")
-        ref_path = out_dir / "ref_clean.mp4"
-        cmd = [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "testsrc=duration=15:size=1280x720:rate=30",
-            "-f", "lavfi", "-i", "sine=frequency=1000:duration=15",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            str(ref_path)
-        ]
-        run_ffmpeg(cmd)
-        base_video = ref_path
+def generate_file(args):
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    duration = args.duration
+    
+    # Audio Source Logic
+    # Beeps are good for human checking, Continuous is required for accurate short-term Loudness checks
+    if args.continuous or args.loudness:
+        audio_src = f"sine=frequency=1000:duration={duration}" # Continuous
     else:
-        base_video = Path(base_video)
+        audio_src = f"sine=frequency=1000:duration={duration}:beep_factor=4" # Beeps
 
-    # 2. Defect: Black Frame / Dropout
-    print("\nGenerating: Black Frame Defect...")
-    cmd = [
-        "ffmpeg", "-y", "-i", str(base_video),
-        "-vf", "drawbox=enable='between(t,5,8)':color=black:t=fill",
-        "-c:a", "copy",
-        str(out_dir / "test_defect_blackframe.mp4")
+    inputs = [
+        "-f", "lavfi", "-i", f"testsrc2=duration={duration}:size=1280x720:rate=24",
+        "-f", "lavfi", "-i", audio_src
     ]
-    run_ffmpeg(cmd)
+    
+    vf_filters = []
+    af_filters = []
+    
+    # Defects
+    if args.black_video:
+        vf_filters.append("drawbox=enable='between(t,1,4)':color=black:t=fill")
+    if args.freeze:
+        vf_filters.append("loop=60:1:24")
+    if args.phase_cancel:
+        af_filters.append("pan=stereo|c0=c0|c1=-1*c0")
 
-    # 3. Defect: Audio Loudness (Too Loud)
-    print("\nGenerating: Loudness Defect...")
+    # LOUDNESS NORMALIZATION
+    # If a target is set, we force it using loudnorm
+    if args.loudness:
+        try:
+            target = float(args.loudness)
+        except:
+            target = -10.0
+        # linear=true ensures better accuracy for synth tones
+        af_filters.append(f"loudnorm=I={target}:TP=-1.5:LRA=11:linear=true")
+
+    # Metadata & Encoding
     cmd = [
-        "ffmpeg", "-y", "-i", str(base_video),
-        "-af", "volume=10dB",
-        "-c:v", "copy",
-        str(out_dir / "test_defect_loudness.mp4")
+        "ffmpeg", "-y",
+        *inputs,
+        "-metadata:s:v:0", "language=eng",
+        "-metadata:s:a:0", "language=eng",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast",
+        "-c:a", "aac", "-b:a", "128k"
     ]
+    
+    if vf_filters: cmd.extend(["-vf", ",".join(vf_filters)])
+    if af_filters: cmd.extend(["-af", ",".join(af_filters)])
+        
+    cmd.append(str(output_path))
     run_ffmpeg(cmd)
-
-    # 4. Defect: Audio Phase Cancellation
-    # FIX: We map c0 (Input Ch1) to BOTH outputs, but invert the second.
-    # pan=stereo|c0=c0|c1=-1*c0  <-- Uses c0 for Right channel too
-    print("\nGenerating: Phase Defect...")
-    cmd = [
-        "ffmpeg", "-y", "-i", str(base_video),
-        "-af", "pan=stereo|c0=c0|c1=-1*c0",
-        "-c:v", "copy",
-        str(out_dir / "test_defect_phase.mp4")
-    ]
-    run_ffmpeg(cmd)
-
-    # 5. Defect: Freeze Frame
-    print("\nGenerating: Freeze Defect...")
-    cmd = [
-        "ffmpeg", "-y", "-i", str(base_video),
-        "-vf", "loop=120:1:150",
-        "-c:a", "copy",
-        str(out_dir / "test_defect_freeze.mp4")
-    ]
-    run_ffmpeg(cmd)
-
-    print("\n[DONE] Test media generated in:", out_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base", help="Path to a clean reference video (optional)")
-    parser.add_argument("--out", default="test_media", help="Output folder")
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--duration", type=int, default=10)
+    parser.add_argument("--base")
+    parser.add_argument("--black_video", action="store_true")
+    parser.add_argument("--freeze", action="store_true")
+    parser.add_argument("--phase_cancel", action="store_true")
+    parser.add_argument("--loudness", help="Target LUFS value")
+    parser.add_argument("--continuous", action="store_true", help="Use continuous tone (no beeps)")
+    
     args = parser.parse_args()
-
-    generate_test_media(args.base, args.out)
+    try: generate_file(args)
+    except: sys.exit(1)

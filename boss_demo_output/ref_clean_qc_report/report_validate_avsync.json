@@ -1,0 +1,14 @@
+{
+    "module": "validate_avsync",
+    "status": "PASSED",
+    "details": {
+        "offset_ms": 0.0,
+        "offset_head_ms": 0.0,
+        "offset_tail_ms": 0.0,
+        "drift_ms": 0.0,
+        "tolerance_ms": 40.0,
+        "confidence_score": 18.97,
+        "analysis_note": "Sync OK"
+    },
+    "effective_status": "PASSED"
+}

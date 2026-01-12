@@ -1,0 +1,16 @@
+{
+    "module": "validate_analog",
+    "status": "WARNING",
+    "events": [
+        {
+            "type": "high_noise_detected",
+            "details": "High visual noise/grain level (83.28). Possible analog gain noise.",
+            "severity": "WARNING"
+        }
+    ],
+    "metrics": {
+        "avg_noise_level": 83.28,
+        "max_tbc_skew": 0.0,
+        "flagging_detected": false
+    }
+}

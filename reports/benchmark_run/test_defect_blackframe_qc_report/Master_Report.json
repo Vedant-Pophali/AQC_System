@@ -1,0 +1,172 @@
+{
+    "timestamp": "Mon Jan 12 13:13:16 2026",
+    "profile": "strict",
+    "overall_status": "REJECTED",
+    "modules": {
+        "validate_structure": {
+            "module": "validate_structure",
+            "status": "PASSED",
+            "metrics": {
+                "container": "mov,mp4,m4a,3gp,3g2,mj2",
+                "duration_sec": 5.0,
+                "bitrate_bps": 2661473,
+                "track_count_video": 1,
+                "track_count_audio": 1,
+                "track_count_subs": 0
+            },
+            "events": [],
+            "effective_status": "PASSED"
+        },
+        "validate_frames": {
+            "module": "validate_frames",
+            "status": "WARNING",
+            "events": [
+                {
+                    "type": "freeze_frame",
+                    "details": "Content frozen for 3.00s",
+                    "start_time": 1.0416666666666665,
+                    "end_time": 4.041666666666666,
+                    "source_module": "validate_frames"
+                }
+            ],
+            "metrics": {
+                "duplicate_frame_count": 72,
+                "max_pts_drift_ms": 0.0
+            }
+        },
+        "validate_analog": {
+            "module": "validate_analog",
+            "status": "PASSED",
+            "events": [],
+            "metrics": {
+                "avg_noise_level": 26.84,
+                "max_tbc_skew": 0.0,
+                "flagging_detected": false
+            }
+        },
+        "validate_black_freeze": {
+            "module": "validate_black_freeze",
+            "status": "REJECTED",
+            "events": [
+                {
+                    "type": "video_freeze",
+                    "start_time": 1.0,
+                    "end_time": 4.041667,
+                    "details": "Video Freeze detected for 3.04s.",
+                    "source_module": "validate_black_freeze"
+                },
+                {
+                    "type": "fade_out",
+                    "details": "Intentional Fade-Out detected.",
+                    "start_time": 1.0,
+                    "end_time": 4.041667,
+                    "source_module": "validate_black_freeze"
+                }
+            ]
+        },
+        "validate_interlace": {
+            "module": "validate_interlace",
+            "status": "PASSED",
+            "metrics": {
+                "avg_field_psnr": 78.32,
+                "avg_field_ssim": 0.9989,
+                "avg_temporal_divergence": 8.93,
+                "interlaced_frame_count": 0,
+                "scanned_frames": 60
+            },
+            "events": []
+        },
+        "validate_artifacts": {
+            "module": "validate_artifacts",
+            "status": "PASSED",
+            "events": []
+        },
+        "validate_geometry": {
+            "module": "validate_geometry",
+            "status": "PASSED",
+            "metrics": {
+                "container_res": "1280x720",
+                "sar": "1:1",
+                "metadata_dar": "16:9",
+                "calculated_dar": 1.7778,
+                "active_res": "1280x720",
+                "fill_factor": 1.0
+            },
+            "events": []
+        },
+        "validate_loudness": {
+            "module": "validate_loudness",
+            "status": "PASSED",
+            "metrics": {
+                "integrated_lufs": -23.0,
+                "lra": 0.0,
+                "true_peak": -99.0
+            },
+            "events": []
+        },
+        "validate_audio_signal": {
+            "module": "validate_audio_signal",
+            "status": "PASSED",
+            "metrics": {
+                "dc_offset_max": 0.0,
+                "dynamic_range_db": 0.0,
+                "peak_volume_db": -17.0,
+                "channels": 1
+            },
+            "events": []
+        },
+        "validate_avsync": {
+            "module": "validate_avsync",
+            "status": "REJECTED",
+            "details": {
+                "offset_ms": 626.94,
+                "offset_head_ms": 626.94,
+                "offset_tail_ms": 626.94,
+                "drift_ms": 0.0,
+                "tolerance_ms": 40.0,
+                "confidence_score": 1.92,
+                "analysis_note": "Offset 626.94ms exceeds limit"
+            },
+            "effective_status": "REJECTED"
+        }
+    },
+    "aggregated_events": [
+        {
+            "type": "fade_out",
+            "details": "Intentional Fade-Out detected.",
+            "start_time": 1.0,
+            "end_time": 4.041667,
+            "source_module": "validate_black_freeze"
+        },
+        {
+            "type": "video_freeze",
+            "start_time": 1.0,
+            "end_time": 4.041667,
+            "details": "Video Freeze detected for 3.04s.",
+            "source_module": "validate_black_freeze"
+        },
+        {
+            "type": "freeze_frame",
+            "details": "Content frozen for 3.00s",
+            "start_time": 1.0416666666666665,
+            "end_time": 4.041666666666666,
+            "source_module": "validate_frames"
+        }
+    ],
+    "governance": {
+        "active_profile": "strict",
+        "config_version_hash": "2e8f3323",
+        "compliance_standard": "Generic Broadcaster (EBU R128 / R37)",
+        "licenses": {
+            "AQC_System": "MIT License (Proprietary Logic)",
+            "Dependencies": {
+                "FFmpeg": "LGPL v2.1+ (Media Decoding)",
+                "OpenCV": "Apache 2.0 (Computer Vision)",
+                "Librosa": "ISC License (Audio Analysis)",
+                "NumPy/SciPy": "BSD 3-Clause (Math)",
+                "Plotly": "MIT License (Visualization)"
+            },
+            "Statement": "This tool uses open-source libraries. Ensure FFmpeg is built with non-free flags if checking specific proprietary codecs."
+        }
+    }
+}

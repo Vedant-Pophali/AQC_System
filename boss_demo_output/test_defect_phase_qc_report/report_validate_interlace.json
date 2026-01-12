@@ -1,0 +1,12 @@
+{
+    "module": "validate_interlace",
+    "status": "PASSED",
+    "metrics": {
+        "avg_field_psnr": 43.98,
+        "avg_field_ssim": 0.997,
+        "avg_temporal_divergence": 14.72,
+        "interlaced_frame_count": 0,
+        "scanned_frames": 60
+    },
+    "events": []
+}

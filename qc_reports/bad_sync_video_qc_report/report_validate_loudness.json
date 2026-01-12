@@ -1,0 +1,16 @@
+{
+    "module": "validate_loudness",
+    "status": "REJECTED",
+    "metrics": {
+        "integrated_lufs": -25.3,
+        "lra": 0.0,
+        "true_peak": -99.0
+    },
+    "events": [
+        {
+            "type": "loudness_violation",
+            "details": "Integrated Loudness -25.3 LUFS is outside target -23.0 +/- 1.0.",
+            "severity": "high"
+        }
+    ]
+}

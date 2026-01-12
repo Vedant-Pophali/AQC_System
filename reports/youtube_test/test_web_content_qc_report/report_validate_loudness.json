@@ -1,0 +1,10 @@
+{
+    "module": "validate_loudness",
+    "status": "PASSED",
+    "metrics": {
+        "integrated_lufs": -14.0,
+        "lra": 0.0,
+        "true_peak": -99.0
+    },
+    "events": []
+}

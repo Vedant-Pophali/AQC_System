@@ -1,0 +1,13 @@
+{
+    "module": "validate_geometry",
+    "status": "PASSED",
+    "metrics": {
+        "container_res": "1280x720",
+        "sar": "1:1",
+        "metadata_dar": "16:9",
+        "calculated_dar": 1.7778,
+        "active_res": "1280x720",
+        "fill_factor": 1.0
+    },
+    "events": []
+}

@@ -1,0 +1,10 @@
+{
+    "module": "validate_analog",
+    "status": "PASSED",
+    "events": [],
+    "metrics": {
+        "avg_noise_level": 64.36,
+        "max_tbc_skew": 0.0,
+        "flagging_detected": false
+    }
+}

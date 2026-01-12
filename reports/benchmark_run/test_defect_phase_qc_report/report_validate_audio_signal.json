@@ -1,0 +1,40 @@
+{
+    "module": "validate_audio_signal",
+    "status": "REJECTED",
+    "metrics": {
+        "dc_offset_max": 0.0,
+        "dynamic_range_db": 0.0,
+        "peak_volume_db": -8.2,
+        "channels": 2
+    },
+    "events": [
+        {
+            "type": "phase_inversion_detected",
+            "details": "Phase Cancellation detected (0.97s). L+R Sum resulted in silence.",
+            "start_time": 0.06,
+            "end_time": 1.03,
+            "severity": "CRITICAL"
+        },
+        {
+            "type": "phase_inversion_detected",
+            "details": "Phase Cancellation detected (0.98s). L+R Sum resulted in silence.",
+            "start_time": 1.05,
+            "end_time": 2.03,
+            "severity": "CRITICAL"
+        },
+        {
+            "type": "phase_inversion_detected",
+            "details": "Phase Cancellation detected (0.95s). L+R Sum resulted in silence.",
+            "start_time": 2.05,
+            "end_time": 3.0,
+            "severity": "CRITICAL"
+        },
+        {
+            "type": "phase_inversion_detected",
+            "details": "Phase Cancellation detected (1.98s). L+R Sum resulted in silence.",
+            "start_time": 3.04,
+            "end_time": 5.02,
+            "severity": "CRITICAL"
+        }
+    ]
+}
