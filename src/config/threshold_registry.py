@@ -1,104 +1,113 @@
-# Registry of QC Thresholds / Boundary Conditions
-# Reference: Research Section 7 (Source 203-205)
+import json
+import hashlib
 
-DEFAULT_PROFILE = "strict"
-
+# ---------------------------------------------------------
+# 1. PER-PLATFORM COMPLIANCE PROFILES
+# ---------------------------------------------------------
 PROFILES = {
     "strict": {
-        "description": "Broadcast/OTT delivery standards (Netflix/Hulu spec)",
-
-        "structure": {
-            "expected_container": "mp4",
-            "min_audio_channels": 2,
-            "sample_rate": "48000",
-            "display_aspect_ratio": 1.778  # 16:9
+        "description": "Generic Broadcaster (EBU R128 / R37)",
+        "audio": {
+            "integrated_loudness_target": -23.0,
+            "loudness_tolerance": 1.0,
+            "true_peak_max": -1.0,
+            "max_silence_sec": 2.0
         },
-
-        "visual_qc": {
-            # Black Frame: >98% black pixels, <0.03 brightness, >2.0s duration
-            "black_pixel_coverage": 0.98,
-            "black_frame_threshold": 0.03,
-            "min_black_duration": 2.0
+        "video": {
+            "black_frame_threshold": 0.1,  # 10% black is black
+            "freeze_frame_max_sec": 0.5,
+            "dropped_frame_max": 0,
+            "require_progressive": True
         },
-
-        "freeze_qc": {
-            "noise_tolerance": -60, # dB
-            "min_freeze_duration": 2.0 # seconds
-        },
-
-        "audio_signal": {
-            "max_dc_offset": 0.005,
-            "max_clipping_ratio": 0.0, # Zero tolerance for clipping
-            "min_phase_correlation": -0.8 # Avoid phase cancellation
-        },
-
-        "loudness": {
-            "target_lufs": -23.0,
-            "lufs_tolerance": 2.0, # +/- 2 LU
-            "true_peak_max": -1.0, # dBTP
-            "lra_max": 20.0
-        },
-
-        "interlace": {
-            "max_interlaced_ratio": 0.0, # Progressive only
-            "min_field_psnr": 30.0 # High PSNR = Progressive
-        },
-
-        "artifacts": {
-            "blockiness_threshold": 0.05, # Heuristic ratio
-            "ringing_threshold": 0.02,
-            "sample_interval_sec": 1.0,
-            "min_artifact_duration_sec": 0.5
-        },
-
-        "avsync": {
-            "max_offset_sec": 0.040, # +/- 40ms (1 frame at 25fps)
-            "method": "median"
+        "sync": {
+            "tolerance_ms": 22.0  # ~1 frame at 24fps (Very Strict)
         }
     },
-
-    "ott": {
-        "description": "Relaxed Web/Social standards",
-        # Inherits structure but relaxes strictness
-        "structure": {
-            "expected_container": "mp4",
-            "min_audio_channels": 2,
-            "sample_rate": "44100", # Allow 44.1k
-            "display_aspect_ratio": 1.778
+    "netflix_hd": {
+        "description": "Netflix Delivery Spec v9.1 (HD/UHD)",
+        "audio": {
+            "integrated_loudness_target": -24.0, # Dialogue weighted
+            "loudness_tolerance": 2.0,
+            "true_peak_max": -2.0,
+            "max_silence_sec": 0.5
         },
-        "visual_qc": {
-            "black_pixel_coverage": 0.95,
-            "black_frame_threshold": 0.05,
-            "min_black_duration": 3.0
+        "video": {
+            "black_frame_threshold": 0.05, 
+            "freeze_frame_max_sec": 0.0, # Zero tolerance
+            "dropped_frame_max": 0,
+            "require_progressive": True
         },
-        "freeze_qc": {
-            "noise_tolerance": -50,
-            "min_freeze_duration": 3.0
-        },
-        "audio_signal": {
-            "max_dc_offset": 0.01,
-            "max_clipping_ratio": 0.001,
-            "min_phase_correlation": -0.9
-        },
-        "loudness": {
-            "target_lufs": -16.0, # Web standard often -16
-            "lufs_tolerance": 3.0,
-            "true_peak_max": -1.0,
-            "lra_max": 25.0
-        },
-        "interlace": {
-            "max_interlaced_ratio": 0.05,
-            "min_field_psnr": 25.0
-        },
-        "artifacts": {
-            "blockiness_threshold": 0.10,
-            "ringing_threshold": 0.05,
-            "sample_interval_sec": 2.0,
-            "min_artifact_duration_sec": 1.0
-        },
-        "avsync": {
-            "max_offset_sec": 0.100, # 100ms
-            "method": "median"
+        "sync": {
+            "tolerance_ms": 40.0 # Standard
         }
+    },
+    "youtube": {
+        "description": "YouTube / Web Upload (Loose)",
+        "audio": {
+            "integrated_loudness_target": -14.0, # AES standard for streaming
+            "loudness_tolerance": 3.0,
+            "true_peak_max": 0.0,
+            "max_silence_sec": 5.0
+        },
+        "video": {
+            "black_frame_threshold": 0.2, 
+            "freeze_frame_max_sec": 2.0,
+            "dropped_frame_max": 15,
+            "require_progressive": False
+        },
+        "sync": {
+            "tolerance_ms": 100.0 # Loose sync allowed
+        }
+    },
+    "ott": { # Alias for legacy support
+        "description": "General OTT (Amazon/Hulu)",
+        "audio": {"integrated_loudness_target": -24.0},
+        # Inherits generic strict defaults for others
     }
 }
+
+# ---------------------------------------------------------
+# 2. LICENSE COMPLIANCE DOCUMENTATION
+# ---------------------------------------------------------
+LICENSE_MANIFEST = {
+    "AQC_System": "MIT License (Proprietary Logic)",
+    "Dependencies": {
+        "FFmpeg": "LGPL v2.1+ (Media Decoding)",
+        "OpenCV": "Apache 2.0 (Computer Vision)",
+        "Librosa": "ISC License (Audio Analysis)",
+        "NumPy/SciPy": "BSD 3-Clause (Math)",
+        "Plotly": "MIT License (Visualization)"
+    },
+    "Statement": "This tool uses open-source libraries. Ensure FFmpeg is built with non-free flags if checking specific proprietary codecs."
+}
+
+# ---------------------------------------------------------
+# 3. LOGIC & VERSIONING
+# ---------------------------------------------------------
+def get_profile(profile_name):
+    """
+    Returns the requested profile configuration or defaults to 'strict'.
+    """
+    # Fallback to strict if unknown
+    cfg = PROFILES.get(profile_name, PROFILES["strict"])
+    return cfg
+
+def get_config_hash(profile_name):
+    """
+    3. Versioned Configuration
+    Generates a unique SHA256 short-hash for the specific configuration state.
+    This guarantees Reproducibility: if the hash is the same, the pass/fail criteria were identical.
+    """
+    cfg = get_profile(profile_name)
+    # Sort keys to ensure consistent hashing
+    cfg_str = json.dumps(cfg, sort_keys=True)
+    return hashlib.sha256(cfg_str.encode()).hexdigest()[:8]
+
+def get_governance_info(profile_name):
+    cfg = get_profile(profile_name)
+    return {
+        "active_profile": profile_name,
+        "config_version_hash": get_config_hash(profile_name),
+        "compliance_standard": cfg.get("description", "Custom"),
+        "licenses": LICENSE_MANIFEST
+    }

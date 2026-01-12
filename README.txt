@@ -1,41 +1,60 @@
-Automated Media Quality Control Tool (v1.1)
-===========================================
+# AQC System (Automated Quality Control)
 
-Overview
---------
-This tool performs automated QC on video files, checking for:
-1. Visual Defects (Black Frames)
-2. Audio Compliance (EBU R.128 Loudness)
-3. Vernacular Text Presence (Hindi OCR)
+**Version:** 1.0.0 (Product-Ready)  
+**License:** MIT / Open Source  
 
-Installation
-------------
-1. Double-click 'setup.bat' (Run this only once).
-   - This installs the required AI libraries (Torch, EasyOCR).
+## 📖 Overview
+The **AQC System** is a broadcast-grade automated quality control tool designed to validate video assets against strict technical specifications. It replaces manual spot-checking with frame-accurate automated analysis.
 
-How to Run
-----------
-Option A: Graphical Interface (Recommended)
-   - Double-click 'start_gui.bat'.
-   - Select your video file and click "START QC ANALYSIS".
+It is capable of detecting:
+* **Visual Defects:** Black frames, Freeze frames, Interlacing artifacts, Letterboxing/Pillarboxing.
+* **Audio Defects:** Loudness violations (EBU R128), Phase cancellation, Clipping, Dropouts.
+* **Structural Issues:** Container corruption, Missing metadata, Codec mismatches.
+* **A/V Sync:** Synchronization drift and offset.
 
-Option B: Command Line
-   - Double-click 'run_qc.bat' and type your command:
-     run_qc.bat --input your_video.mp4
+## 🚀 Key Features
+* **3 Operation Modes:**
+    * `STRICT`: For Broadcast TV (EBU R128, -23 LUFS, Perfect Sync).
+    * `NETFLIX_HD`: For Premium Streaming (High bitrate, 0 freeze tolerance).
+    * `YOUTUBE`: For Web/Social (Relaxed Loudness -14 LUFS, Loose Sync).
+* **Batch Processing:** Scan 1,000+ videos in parallel and get a single Excel summary.
+* **Interactive Dashboard:** HTML reports with clickable timelines that jump video playback to the exact error frame.
+* **Governance:** Reproducible Config Hashes to ensure audit trails.
 
-Configuration (Advanced)
-------------------------
-You can adjust the QC thresholds in the 'qc_config.json' file.
+---
 
-- "target_lufs": Set the loudness target (Default: -23.0 for Broadcast).
-- "sampling_interval_seconds": How often to check for text (Default: 5.0s).
-   - Decrease to 1.0s for higher accuracy (Slower).
-   - Increase to 10.0s for faster processing (Lower accuracy).
-- "target_width_px": Internal resolution for OCR.
-   - Keep at 640 for best CPU performance.
+## 🛠️ Installation
 
-Outputs
--------
-Reports are saved in the 'reports' folder.
-- dashboard.html: Interactive Visual Report.
-- Master_Report.json: Full technical data.
+### Prerequisites
+1.  **Docker Desktop** (Recommended for stability).
+2.  **Python 3.10+** (Required only to launch the GUI).
+
+### Setup
+1.  Unzip the package.
+2.  Open a terminal in the folder.
+3.  Install dependencies (for the GUI and Local Runner):
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+---
+
+## 🖥️ How to Use (3 Methods)
+
+### Method 1: The "Boss Mode" (GUI) - Recommended
+*Best for: Non-technical users who want to scan a folder of videos.*
+
+1.  Make sure **Docker Desktop** is running.
+2.  Double-click **`run_aqc.bat`**.
+3.  The **AQC Launcher** window will appear.
+    * **Input Folder:** Select the folder containing your videos.
+    * **Output Folder:** Select where you want the reports.
+    * **Profile:** Choose `Strict`, `Netflix`, or `YouTube`.
+4.  Click **START QC BATCH**.
+5.  The system will process files in the background and notify you when finished.
+
+### Method 2: Batch CLI (Power User)
+*Best for: Running large batches on a server or without the GUI.*
+
+```bash
+python batch_runner.py --input_dir "C:\Videos" --output_dir "C:\Reports" --mode strict --workers 4

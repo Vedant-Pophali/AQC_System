@@ -1,11 +1,7 @@
-streamlit
 opencv-python-headless
 numpy
+scipy
+librosa
 pandas
 plotly
-ffmpeg-python
-pyspark
-lxml
-easyocr
-torch
-torchvision
+tqdm

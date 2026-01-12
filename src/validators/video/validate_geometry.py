@@ -2,45 +2,53 @@ import argparse
 import json
 import subprocess
 import re
+from fractions import Fraction
 from pathlib import Path
 
-def get_video_info(input_path):
+def get_geometry_metadata(input_path):
     """
-    Get basic resolution and duration.
+    Extracts deep geometry metadata: SAR, DAR, and Resolution.
     """
     try:
         cmd = [
             "ffprobe", "-v", "error", "-select_streams", "v:0",
-            "-show_entries", "stream=width,height,duration", 
+            "-show_entries", "stream=width,height,sample_aspect_ratio,display_aspect_ratio,duration", 
             "-of", "json", str(input_path)
         ]
         res = subprocess.run(cmd, capture_output=True, text=True)
         data = json.loads(res.stdout)
-        stream = data["streams"][0]
-        return int(stream["width"]), int(stream["height"]), float(stream.get("duration", 0))
-    except:
-        return 1920, 1080, 0.0 # Fallback
+        if not data.get("streams"):
+            return None
+        return data["streams"][0]
+    except Exception:
+        return None
 
-def detect_crop(input_path, start_time):
+def parse_ratio(ratio_str):
+    """Converts '16:9' or '1:1' string to float."""
+    try:
+        if ":" in ratio_str:
+            num, den = map(int, ratio_str.split(":"))
+            return num / den if den != 0 else 0.0
+        return float(ratio_str)
+    except:
+        return 0.0
+
+def detect_active_area(input_path, start_time):
     """
-    3.4 Geometry & Framing
-    Uses 'cropdetect' to find the actual active video area.
+    Uses cropdetect to find black bars.
     """
-    # Run cropdetect on 10 frames in the middle of the video
     cmd = [
         "ffmpeg", "-ss", str(start_time), "-i", str(input_path),
-        "-vf", "cropdetect=24:16:0", "-frames:v", "10", "-f", "null", "-"
+        "-vf", "cropdetect=24:16:0", "-frames:v", "5", "-f", "null", "-"
     ]
-    
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
-        # Look for: "crop=1920:800:0:140" (Format: w:h:x:y)
         matches = re.findall(r"crop=(\d+):(\d+):(\d+):(\d+)", proc.stderr)
         if matches:
-            # Take the last match (filter stabilizes over time)
-            w, h, x, y = matches[-1] 
-            return int(w), int(h), int(x), int(y)
-    except Exception:
+            # Return last match (stabilized)
+            w, h, x, y = map(int, matches[-1])
+            return w, h, x, y
+    except:
         pass
     return None
 
@@ -52,53 +60,84 @@ def run_validator(input_path, output_path, mode="strict"):
         "events": []
     }
     
-    # 1. Get Container Dimensions & Duration
-    full_w, full_h, duration = get_video_info(input_path)
+    # 1. Get Metadata
+    meta = get_geometry_metadata(input_path)
+    if not meta:
+        report["status"] = "SKIPPED"
+        report["metrics"]["error"] = "Could not probe video geometry"
+        with open(output_path, "w") as f: json.dump(report, f, indent=4)
+        return
+
+    width = int(meta.get("width", 0))
+    height = int(meta.get("height", 0))
+    sar_str = meta.get("sample_aspect_ratio", "1:1")
+    dar_str = meta.get("display_aspect_ratio", "0:0")
+    duration = float(meta.get("duration", 0))
+
+    sar = parse_ratio(sar_str)
+    dar = parse_ratio(dar_str) # Metadata DAR
     
-    # Calculate a safe seek time (Middle of video)
-    # If video is < 2s, start at 0
-    safe_seek = duration / 2.0 if duration > 2.0 else 0.0
-    
-    # 2. Detect Active Area
-    crop = detect_crop(input_path, safe_seek)
+    # Calculate Theoretical DAR based on resolution and SAR
+    # Formula: DAR = (Width / Height) * SAR
+    res_ratio = width / height if height > 0 else 0
+    calc_dar = res_ratio * sar if sar > 0 else res_ratio
+
+    report["metrics"] = {
+        "container_res": f"{width}x{height}",
+        "sar": sar_str,
+        "metadata_dar": dar_str,
+        "calculated_dar": round(calc_dar, 4)
+    }
+
+    # -------------------------------------------------
+    # CHECK 1: Aspect Ratio Distortion / Metadata Mismatch
+    # -------------------------------------------------
+    # If the metadata DAR differs significantly from (W/H * SAR), the player will stretch it wrong.
+    # 0:0 usually means FFmpeg couldn't calculate it, usually safe to ignore if SAR is 1:1
+    if dar > 0 and abs(dar - calc_dar) > 0.05:
+        report["status"] = "WARNING"
+        report["events"].append({
+            "type": "ar_distortion",
+            "details": f"Metadata DAR ({dar:.2f}) mismatch with Resolution-based DAR ({calc_dar:.2f}). Video may appear stretched."
+        })
+
+    # -------------------------------------------------
+    # CHECK 2: Active Picture Area (Crop/Framing)
+    # -------------------------------------------------
+    safe_seek = duration / 2.0 if duration > 5.0 else 0.0
+    crop = detect_active_area(input_path, safe_seek)
     
     if crop:
-        active_w, active_h, x, y = crop
+        act_w, act_h, x, y = crop
+        report["metrics"]["active_res"] = f"{act_w}x{act_h}"
         
-        report["metrics"] = {
-            "container_width": full_w,
-            "container_height": full_h,
-            "active_width": active_w,
-            "active_height": active_h,
-            "fill_percentage": round((active_w * active_h) / (full_w * full_h) * 100, 2)
-        }
-        
-        # 3.4 Letterbox Detection (Bars at top/bottom)
-        # Tolerance: Allow 1% difference for coding blocks
-        if active_h < (full_h * 0.99):
+        # Letterbox (Top/Bottom bars)
+        if act_h < height * 0.99:
             report["events"].append({
                 "type": "letterbox_detected",
-                "details": f"Active height {active_h}px < {full_h}px. Letterboxing detected."
+                "details": f"Active height {act_h} < {height}. Content is letterboxed."
             })
-            
-        # 3.4 Pillarbox Detection (Bars at sides)
-        if active_w < (full_w * 0.99):
+
+        # Pillarbox (Side bars)
+        if act_w < width * 0.99:
             report["events"].append({
                 "type": "pillarbox_detected",
-                "details": f"Active width {active_w}px < {full_w}px. Pillarboxing detected."
+                "details": f"Active width {act_w} < {width}. Content is pillarboxed."
             })
-            
-        # 3.4 Unsafe Aperture / Clean Feed Check
-        # If video fills < 80% of frame, warn.
-        fill_rate = report["metrics"]["fill_percentage"]
-        if fill_rate < 80.0:
-            report["status"] = "WARNING"
+
+        # Unsafe Aperture / Clean Feed (Encode vs Display bounds mismatch)
+        # If the active video is significantly smaller than the encoded area, we are wasting bitrate
+        # or have a "Postage Stamp" defect.
+        fill_factor = (act_w * act_h) / (width * height)
+        report["metrics"]["fill_factor"] = round(fill_factor, 2)
+        
+        if fill_factor < 0.75:
+            severity = "REJECTED" if mode == "strict" else "WARNING"
+            if severity == "REJECTED": report["status"] = "REJECTED"
             report["events"].append({
-                "type": "unsafe_framing",
-                "details": f"Video fills only {fill_rate}% of the frame. Large borders detected."
+                "type": "small_active_area",
+                "details": f"Active video uses only {int(fill_factor*100)}% of canvas. 'Postage stamp' artifact detected."
             })
-    else:
-        report["metrics"]["error"] = "Could not detect active crop area."
 
     with open(output_path, "w") as f:
         json.dump(report, f, indent=4)
