@@ -37,3 +37,21 @@ test_media/
 # --- Folders to Ignore ---
 boss_demo_output/
 qc_reports/
+
+# --- AQC Generated Artifacts ---
+*.jpg
+*.png
+*.html
+*.json
+!src/**/*.json  # Keep config JSONs if any
+!src/**/*.jpg   # Keep asset JPGs if any
+
+# --- Test Data & Models ---
+test_data/
+src/models/brisque/*.yml  # Don't commit the downloaded 15MB model files
+dummy_master.json
+
+# --- IDE & System ---
+.vscode/
+__pycache__/
+*.pyc
