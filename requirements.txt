@@ -1,7 +1,10 @@
-opencv-python-headless
+opencv-contrib-python-headless
 numpy
 scipy
 librosa
 pandas
 plotly
 tqdm
+scikit-image
+Pillow
+requests

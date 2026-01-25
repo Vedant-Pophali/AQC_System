@@ -6,26 +6,45 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import html
+import logging
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("visualize_report")
 
 # --- 1. INTELLIGENT REMEDIATION DICTIONARY ---
 # Maps errors to: (Human Name, Actionable Advice)
 ERROR_KNOWLEDGE_BASE = {
+    # Audio
     "loudness_check": ("Audio Loudness Violation", "Apply a transparent limiter or normalizer to hit target LUFS."),
     "loudness_compliance_failed": ("Loudness Standard Fail", "Re-mix audio to EBU R128 (-23 LUFS) or YouTube (-14 LUFS) standards."),
     "true_peak_violation": ("Audio Clipping", "Lower the master gain or use a True Peak Limiter to prevent distortion."),
     "phase_inversion_detected": ("Phase Cancellation", "Check stereo width plugins or flip the phase on one channel."),
+    "audio_dropout": ("Audio Dropout", "Check source audio tracks for gaps or corrupt cross-fades."),
+    
+    # Video Errors
     "black_frame_detected": ("Unexpected Black Frames", "Remove the gap in your timeline or add a cross-dissolve."),
     "freeze_frame_detected": ("Frozen Video", "Check your export settings or replace the corrupt clip."),
-    "missing_metadata": ("Missing Metadata", "Re-encode and ensure language tags/headers are set in export."),
-    "avsync_error": ("Lip-Sync Drift", "Slip the audio track by the detected offset amount."),
-    "high_noise_detected": ("Analog Noise", "Apply de-noising filters or check cable connections."),
     "letterbox_detected": ("Letterboxing", "Scale video to fill frame or check sequence settings."),
-    "interlace_artifact": ("Interlacing Lines", "Apply a de-interlace filter or check field-order settings.")
+    "interlace_artifact": ("Interlacing Lines", "Apply a de-interlace filter or check field-order settings."),
+    "high_noise_detected": ("Analog Noise", "Apply de-noising filters or check cable connections."),
+    
+    # ML Artifacts (NEW)
+    "compression_artifact_ml": ("Compression Artifacts (ML)", "Re-encode at a higher bitrate or use a slower encoding preset (slow/veryslow)."),
+    "bitrate_starvation": ("Critical Bitrate Low", "The file bitrate is too low for this resolution. Re-export at a higher Mbps."),
+
+    # Metadata & Sync
+    "missing_metadata": ("Missing Metadata", "Re-encode and ensure language tags/headers are set in export."),
+    "avsync_error": ("Lip-Sync Drift", "Slip the audio track by the detected offset amount.")
 }
 
 def load_master_report(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load report: {e}")
+        return {}
 
 def format_time(seconds):
     """Converts seconds to MM:SS format"""
@@ -33,6 +52,7 @@ def format_time(seconds):
     return f"{int(m):02d}:{int(s):02d}"
 
 def create_interactive_dashboard(report_path, output_path):
+    logger.info(f"Generating dashboard from: {report_path}")
     data = load_master_report(report_path)
     
     events = data.get("aggregated_events", [])
@@ -40,8 +60,12 @@ def create_interactive_dashboard(report_path, output_path):
     # Extract filename
     input_filename = "video.mp4" 
     try:
-        first_mod = list(data["modules"].keys())[0]
-        input_filename = Path(data["modules"][first_mod].get("video_file", "video.mp4")).name
+        # Try to find the filename from the first module that has it
+        if "modules" in data:
+            for mod in data["modules"].values():
+                if "video_file" in mod:
+                    input_filename = Path(mod["video_file"]).name
+                    break
     except: pass
 
     # DataFrame Setup
@@ -62,21 +86,40 @@ def create_interactive_dashboard(report_path, output_path):
     def get_category(row):
         mod = str(row.get("origin_module", "")).lower()
         evt = str(row.get("type", "")).lower()
+        details = str(row.get("details", "")).lower()
+        
+        # ML Artifacts (NEW LOGIC)
+        if "artifact" in evt or "bitrate" in evt or "block" in details: return "Video Quality"
+        if "black" in evt or "freeze" in evt or "interlace" in evt: return "Video Error"
+        
         if "audio" in mod or "loudness" in mod or "silence" in evt: return "Audio"
         if "sync" in mod or "drift" in evt: return "Sync"
         if "structure" in mod: return "Structure"
-        return "Video"
+        
+        return "Video" # Fallback
 
     df["category"] = df.apply(get_category, axis=1)
     df["duration"] = df["end_time"] - df["start_time"]
+    # Viz duration: Ensure single-frame events are visible (at least 0.5s width)
     df["viz_duration"] = df["duration"].apply(lambda x: 0.5 if x <= 0 else x)
     
-    severity_map = {"CRITICAL": 5, "REJECTED": 5, "WARNING": 2, "PASSED": 0, "UNKNOWN": 1}
+    # Severity Mapping for Heatmap (Updated for ML severities)
+    severity_map = {
+        "CRITICAL": 5, 
+        "REJECTED": 5, 
+        "SEVERE": 5,    # New ML
+        "MODERATE": 3,  # New ML
+        "WARNING": 2, 
+        "MILD": 1,      # New ML
+        "PASSED": 0, 
+        "UNKNOWN": 1
+    }
     df["risk_score"] = df["severity"].map(severity_map).fillna(1)
 
     # --- 2. GENERATE SMART SUMMARY HTML ---
     summary_html = ""
     if not df.empty:
+        # Group by error type to avoid duplicates in summary
         error_types = df["type"].unique()
         summary_items = []
         
@@ -91,7 +134,7 @@ def create_interactive_dashboard(report_path, output_path):
             
             # Get Timestamps (First 3 occurrences)
             timestamps = []
-            for _, row in subset.head(3).iterrows():
+            for _, row in subset.sort_values("start_time").head(3).iterrows():
                 start = format_time(row["start_time"])
                 end = format_time(row["end_time"])
                 if row["duration"] < 1:
@@ -103,8 +146,9 @@ def create_interactive_dashboard(report_path, output_path):
             if count > 3: time_str += f" (+{count-3} more)"
             
             # Styling
-            color_class = "text-danger" if severity in ["CRITICAL", "REJECTED"] else "text-warning"
-            icon = "❌" if severity in ["CRITICAL", "REJECTED"] else "⚠️"
+            is_fail = severity in ["CRITICAL", "REJECTED", "SEVERE"]
+            color_class = "text-danger" if is_fail else "text-warning"
+            icon = "❌" if is_fail else "⚠️"
             
             summary_items.append(
                 f"""
@@ -139,12 +183,21 @@ def create_interactive_dashboard(report_path, output_path):
         rows=2, cols=1, 
         shared_xaxes=True, 
         vertical_spacing=0.1,
-        row_heights=[0.8, 0.2],
+        row_heights=[0.75, 0.25],
         subplot_titles=("Defect Timeline (Click to Seek Video)", "Severity Heatmap")
     )
 
-    colors = {"Audio": "#1f77b4", "Video": "#ff7f0e", "Sync": "#2ca02c", "Structure": "#d62728"}
+    # Define Colors
+    colors = {
+        "Audio": "#1f77b4",         # Blue
+        "Video Error": "#d62728",   # Red
+        "Video Quality": "#ff7f0e", # Orange (ML Artifacts)
+        "Sync": "#2ca02c",          # Green
+        "Structure": "#9467bd",     # Purple
+        "Video": "#7f7f7f"          # Grey (Default)
+    }
     
+    # Stacked Bar Chart for Events
     for cat in df["category"].unique():
         subset = df[df["category"] == cat]
         fig.add_trace(go.Bar(
@@ -159,20 +212,49 @@ def create_interactive_dashboard(report_path, output_path):
             hovertemplate="<b>%{y}</b><br>Start: %{base:.2f}s<br>Dur: %{x:.2f}s<br>Sev: %{customdata[1]}<br>Err: %{customdata[0]}<extra></extra>"
         ), row=1, col=1)
 
+    # Heatmap Calculation
     if not df.empty:
         max_time = df["end_time"].max()
         if max_time <= 0: max_time = 10
-        bins = np.arange(0, int(max_time) + 2, 1)
+        # Create bins every 1 second
+        bins = np.arange(0, int(max_time) + 5, 1)
         hist_y = np.zeros(len(bins)-1)
+        
         for _, row in df.iterrows():
+            # Add risk score to all seconds covered by the event
             s = int(row["start_time"])
-            if s < len(hist_y): hist_y[s] += row["risk_score"]
+            e = int(row["end_time"])
+            score = row["risk_score"]
+            
+            # Clamp to array bounds
+            s = max(0, min(s, len(hist_y)-1))
+            e = max(0, min(e, len(hist_y)-1))
+            
+            # For single frame events, mark at least one second
+            if s == e:
+                hist_y[s] = max(hist_y[s], score)
+            else:
+                for t in range(s, e + 1):
+                    if t < len(hist_y):
+                        hist_y[t] = max(hist_y[t], score)
 
         fig.add_trace(go.Heatmap(
-            z=[hist_y], x=bins[:-1], y=["Risk"], colorscale="Reds", showscale=False, name="Heatmap"
+            z=[hist_y], 
+            x=bins[:-1], 
+            y=["Risk Level"], 
+            colorscale=[[0, "#1a1a1a"], [0.2, "#2ecc71"], [0.5, "#f1c40f"], [1.0, "#e74c3c"]],
+            showscale=False, 
+            name="Risk Level"
         ), row=2, col=1)
 
-    fig.update_layout(title="", template="plotly_dark", height=600, margin=dict(t=30, b=30))
+    fig.update_layout(
+        title="", 
+        template="plotly_dark", 
+        height=650, 
+        margin=dict(t=30, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
     plot_div = fig.to_html(full_html=False, include_plotlyjs='cdn')
 
     # --- 4. ASSEMBLE HTML ---
@@ -204,6 +286,8 @@ def create_interactive_dashboard(report_path, output_path):
 
             .video-box {{ background: #000; margin-bottom: 20px; text-align: center; border: 1px solid #333; }}
             video {{ width: 100%; max-height: 450px; outline: none; }}
+            
+            #chart-container {{ min-height: 650px; }}
         </style>
     </head>
     <body>
@@ -242,16 +326,19 @@ def create_interactive_dashboard(report_path, output_path):
                 function setupInteraction() {{
                     var graphDiv = document.getElementsByClassName('plotly-graph-div')[0];
                     var video = document.getElementById('qc-player');
-                    graphDiv.on('plotly_click', function(data){{
-                        if(data.points.length > 0){{
-                            var pt = data.points[0];
-                            var clickTime = (pt.base !== undefined) ? pt.base : pt.x;
-                            if (clickTime !== undefined) {{
-                                video.currentTime = clickTime;
-                                video.play();
+                    
+                    if (graphDiv) {{
+                        graphDiv.on('plotly_click', function(data){{
+                            if(data.points.length > 0){{
+                                var pt = data.points[0];
+                                var clickTime = (pt.base !== undefined) ? pt.base : pt.x;
+                                if (clickTime !== undefined) {{
+                                    video.currentTime = clickTime;
+                                    video.play();
+                                }}
                             }}
-                        }}
-                    }});
+                        }});
+                    }}
                 }}
             </script>
         </div>
@@ -261,6 +348,8 @@ def create_interactive_dashboard(report_path, output_path):
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
+    
+    logger.info(f"Dashboard generated: {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

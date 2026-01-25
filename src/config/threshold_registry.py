@@ -21,6 +21,19 @@ PROFILES = {
         },
         "sync": {
             "tolerance_ms": 22.0  # ~1 frame at 24fps (Very Strict)
+        },
+        # NEW: ML Artifact Detection (BRISQUE)
+        "ml_artifacts": {
+            "enabled": True,
+            "model": "BRISQUE",
+            "sample_rate_fps": 1.0,
+            "threshold_score": 55.0,  # Calibrated for Broadcast
+            "severity_thresholds": {
+                "mild": 35.0,
+                "moderate": 55.0,
+                "severe": 75.0
+            },
+            "min_duration_sec": 1.0
         }
     },
     "netflix_hd": {
@@ -39,6 +52,19 @@ PROFILES = {
         },
         "sync": {
             "tolerance_ms": 40.0 # Standard
+        },
+        # NEW: ML Artifact Detection
+        "ml_artifacts": {
+            "enabled": True,
+            "model": "BRISQUE",
+            "sample_rate_fps": 1.0,
+            "threshold_score": 50.0,  # Stricter for Premium
+            "severity_thresholds": {
+                "mild": 30.0,
+                "moderate": 50.0,
+                "severe": 70.0
+            },
+            "min_duration_sec": 1.0
         }
     },
     "youtube": {
@@ -57,12 +83,30 @@ PROFILES = {
         },
         "sync": {
             "tolerance_ms": 100.0 # Loose sync allowed
+        },
+        # NEW: ML Artifact Detection
+        "ml_artifacts": {
+            "enabled": True,
+            "model": "BRISQUE",
+            "sample_rate_fps": 0.5,   # Lower sampling for speed
+            "threshold_score": 65.0,  # More lenient
+            "severity_thresholds": {
+                "mild": 45.0,
+                "moderate": 65.0,
+                "severe": 85.0
+            },
+            "min_duration_sec": 2.0
         }
     },
     "ott": { # Alias for legacy support
         "description": "General OTT (Amazon/Hulu)",
         "audio": {"integrated_loudness_target": -24.0},
         # Inherits generic strict defaults for others
+        "ml_artifacts": {
+            "enabled": True,
+            "model": "BRISQUE",
+            "threshold_score": 55.0
+        }
     }
 }
 
@@ -91,6 +135,10 @@ def get_profile(profile_name):
     # Fallback to strict if unknown
     cfg = PROFILES.get(profile_name, PROFILES["strict"])
     return cfg
+
+def get_thresholds(profile_name):
+    """Alias for get_profile to maintain backward compatibility with new modules."""
+    return get_profile(profile_name)
 
 def get_config_hash(profile_name):
     """
