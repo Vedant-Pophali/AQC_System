@@ -2,28 +2,36 @@ import argparse
 import json
 import subprocess
 import os
-import sys
 import logging
 import numpy as np
 from pathlib import Path
+from typing import Dict, List, Any, Optional
 
-# --- 1. Import Core Modules ---
+# --- Import Core Modules ---
 from src.config import threshold_registry
+from src.utils.logger import setup_logger
+
+# Initialize Standard Logger
+logger = setup_logger("validate_artifacts")
 
 # Lazy import for Scorer to avoid crashing if dependencies are strictly missing during setup
 try:
     from src.utils.artifact_scorer import ArtifactScorer
 except ImportError:
     ArtifactScorer = None
+    logger.warning("Could not import ArtifactScorer. ML features disabled.")
 
-# Configure Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("validate_artifacts")
-
-def get_bitrate_metrics(input_path):
+def get_bitrate_metrics(input_path: Path) -> Optional[Dict[str, float]]:
     """
-    Legacy Heuristic: Calculates Bits-Per-Pixel (BPP).
-    Low BPP (< 0.05) strongly suggests compression artifacts.
+    Calculates Bits-Per-Pixel (BPP) as a heuristic fallback.
+    
+    Low BPP (< 0.05) strongly suggests compression artifacts regardless of content.
+    
+    Args:
+        input_path (Path): Path to video file.
+        
+    Returns:
+        Optional[Dict]: Dictionary with 'bpp', 'bitrate', 'width', 'height', or None on failure.
     """
     try:
         cmd = [
@@ -51,9 +59,16 @@ def get_bitrate_metrics(input_path):
     
     return None
 
-def stitch_ml_events(raw_results, min_duration=1.0):
+def stitch_ml_events(raw_results: List[Dict[str, Any]], min_duration: float = 1.0) -> List[Dict[str, Any]]:
     """
-    Merges consecutive 'bad' frames into single events to avoid log spam.
+    Aggregates individual bad frames into continuous error events to avoid log spam.
+    
+    Args:
+        raw_results: List of frame scores from ArtifactScorer.
+        min_duration: Minimum duration (seconds) to create an event.
+        
+    Returns:
+        List[Dict]: Stitched error events.
     """
     events = []
     if not raw_results:
@@ -86,6 +101,7 @@ def stitch_ml_events(raw_results, min_duration=1.0):
             continue
             
         # Check continuity (within 1.5 seconds)
+        # We use 1.5s to bridge small gaps if sampling is 1.0s
         if (ts - current_event['end_time']) <= 1.5:
             # Extend current event
             current_event['end_time'] = ts
@@ -133,8 +149,12 @@ def stitch_ml_events(raw_results, min_duration=1.0):
         
     return final_events
 
-def run_validator(input_path, output_path, mode="strict"):
-    input_path = Path(input_path)
+def run_validator(input_path: str, output_path: str, mode: str = "strict") -> None:
+    """
+    Main entry point for Artifact Validation Module.
+    Combines Heuristic checks (Bitrate) with ML checks (BRISQUE).
+    """
+    path_obj = Path(input_path)
     report = {
         "module": "validate_artifacts",
         "status": "PASSED",
@@ -148,7 +168,8 @@ def run_validator(input_path, output_path, mode="strict"):
     ml_config = profile.get("ml_artifacts", {})
     
     # 2. Heuristic Check (Bitrate Starvation)
-    meta = get_bitrate_metrics(input_path)
+    # Fast pass: if bitrate is extremely low, flag it immediately
+    meta = get_bitrate_metrics(path_obj)
     if meta:
         report["metrics"].update(meta)
         if meta["bpp"] < 0.02: # Critical starvation
@@ -167,7 +188,7 @@ def run_validator(input_path, output_path, mode="strict"):
         try:
             scorer = ArtifactScorer()
             raw_results = scorer.analyze_video(
-                str(input_path),
+                str(path_obj),
                 sample_rate=ml_config.get("sample_rate_fps", 1.0),
                 thresholds=ml_config.get("severity_thresholds")
             )

@@ -24,6 +24,9 @@ target/
 *.json
 
 # --- Media Files ---
+tests/
+*.py
+
 test_media/
 *.mp4
 *.mov

@@ -1,25 +1,46 @@
-# Use a lightweight Python base
-FROM python:3.11-slim
+# 1. Base Image (Explicit Stable)
+FROM python:3.11-slim-bookworm
 
-# 1. Install System Dependencies (FFmpeg is critical)
-RUN apt-get update && apt-get install -y \
+# 2. Environment Config
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# 3. FIX: Configure APT to be resilient against unstable mirrors
+# Disabling pipelining fixes most "Hash Sum Mismatch" errors
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom
+
+# 4. Install System Dependencies
+# We use a double-update strategy to ensure lists are fresh
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get install -y --no-install-recommends --fix-missing \
     ffmpeg \
     libsndfile1 \
+    libsm6 \
+    libxext6 \
+    libgl1 \
+    curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Set Working Directory
+# 5. Set Working Directory
 WORKDIR /app
 
-# 3. Install Python Libraries
+# 6. Install Python Dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Copy the Application Code
+# 7. Copy Application Code
 COPY . .
 
-# 5. Define Environment Variables
+# 8. Environment Variables
 ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
 
-# 6. Default Command (Shows Help)
-CMD ["python", "batch_runner.py", "--help"]
+# 9. Build-Time Health Check
+RUN python -c "import cv2; print(f'Build Check: OpenCV {cv2.__version__} Ready')"
+
+# 10. Default Command
+ENTRYPOINT ["python", "main.py"]
+CMD ["--help"]

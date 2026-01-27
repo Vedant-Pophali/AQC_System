@@ -1,17 +1,23 @@
 import cv2
 import os
 import numpy as np
-import logging
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Optional, Any
 from src.utils.frame_sampler import sample_frames
+from src.utils.logger import setup_logger
 
-# Configure logger
-logger = logging.getLogger(__name__)
+# Initialize standardized logger
+logger = setup_logger(__name__)
 
 class ArtifactScorer:
     """
-    Analyzes video frames for compression artifacts using BRISQUE.
-    Includes robustness checks for edge cases (black frames, small resolutions).
+    ML-based video quality assessment using the BRISQUE algorithm.
+    
+    Implements No-Reference Image Quality Assessment (NR-IQA) to detect
+    compression artifacts, blur, and noise without a reference video.
+    
+    Attributes:
+        _brisque (cv2.quality.QualityBRISQUE): The loaded OpenCV model.
+        _initialized (bool): Flag indicating if the model loaded successfully.
     """
     
     _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,18 +26,22 @@ class ArtifactScorer:
     _RANGE_FILE = os.path.join(_MODEL_DIR, "brisque_range_live.yml")
 
     def __init__(self):
+        """Initializes the ArtifactScorer and attempts to load model weights."""
         self._brisque = None
         self._initialized = False
         self._load_model()
 
-    def _load_model(self):
-        """Initialize the OpenCV QualityBRISQUE model securely."""
+    def _load_model(self) -> None:
+        """
+        Loads BRISQUE model files from the local filesystem.
+        
+        Logs an error if files are missing or the cv2.quality module is unavailable.
+        """
         if not (os.path.exists(self._MODEL_FILE) and os.path.exists(self._RANGE_FILE)):
             logger.error(f"BRISQUE model files not found at {self._MODEL_DIR}")
             return
 
         try:
-            # Check if the quality module is available
             if hasattr(cv2, 'quality'):
                 self._brisque = cv2.quality.QualityBRISQUE_create(
                     self._MODEL_FILE, 
@@ -40,16 +50,22 @@ class ArtifactScorer:
                 self._initialized = True
                 logger.info("BRISQUE model loaded successfully")
             else:
-                logger.error("cv2.quality module missing. Install opencv-contrib-python.")
+                logger.error("cv2.quality module missing. Install opencv-contrib-python-headless.")
         except Exception as e:
             logger.error(f"Failed to initialize BRISQUE model: {e}")
 
     def _is_valid_frame(self, frame: np.ndarray) -> bool:
         """
-        Check if frame is suitable for BRISQUE analysis.
-        BRISQUE relies on spatial statistics and can crash/return NaN on:
-        1. Pure solid color frames (variance ~ 0)
-        2. Extremely small frames (< 32x32)
+        Validates if a frame is suitable for NSS (Natural Scene Statistics) analysis.
+        
+        BRISQUE relies on spatial variance. Pure flat colors (black frames) 
+        cause divide-by-zero errors or hallucinations in the model.
+
+        Args:
+            frame (np.ndarray): The image array (BGR).
+
+        Returns:
+            bool: True if frame is valid, False if it should be skipped.
         """
         if frame is None or frame.size == 0:
             return False
@@ -65,6 +81,7 @@ class ArtifactScorer:
         
         # If variance is near zero, it's a solid color (black, white, blue screen).
         # BRISQUE requires texture to calculate natural scene statistics.
+        # Threshold 1.0 is conservative; usually black frames are exactly 0.0
         if variance < 1.0: 
             return False
             
@@ -72,8 +89,13 @@ class ArtifactScorer:
 
     def score_frame(self, frame: np.ndarray) -> float:
         """
-        Calculate BRISQUE score for a single frame with error handling.
-        Returns -1.0 if the frame cannot be scored.
+        Calculates the BRISQUE score for a single video frame.
+
+        Args:
+            frame (np.ndarray): The video frame to analyze.
+
+        Returns:
+            float: Score from 0.0 (Best) to 100.0 (Worst). Returns -1.0 on failure.
         """
         if not self._initialized:
             return -1.0
@@ -84,6 +106,7 @@ class ArtifactScorer:
                 return -1.0 # Skip invalid frames silently
             
             # 2. Compute Score
+            # compute returns a tuple (score, details...), we want index 0
             score_vec = self._brisque.compute(frame)
             score = float(score_vec[0])
             
@@ -100,7 +123,16 @@ class ArtifactScorer:
             return -1.0
 
     def classify_severity(self, score: float, thresholds: Optional[Dict[str, float]] = None) -> str:
-        """Map score to severity category."""
+        """
+        Maps a numeric score to a semantic severity level.
+
+        Args:
+            score (float): The BRISQUE score (0-100).
+            thresholds (Dict, optional): Custom thresholds. Defaults to standard calibration.
+
+        Returns:
+            str: "CLEAN", "MILD", "MODERATE", or "SEVERE".
+        """
         if score < 0: return "UNKNOWN"
         
         t = thresholds or {"mild": 40.0, "moderate": 55.0, "severe": 70.0}
@@ -110,9 +142,17 @@ class ArtifactScorer:
         elif score >= t["mild"]: return "MILD"
         else: return "CLEAN"
 
-    def analyze_video(self, video_path: str, sample_rate: float = 1.0, thresholds: Optional[Dict[str, float]] = None) -> List[Dict]:
+    def analyze_video(self, video_path: str, sample_rate: float = 1.0, thresholds: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
         """
-        Process video and return artifact events.
+        Performs temporal quality analysis on a video file.
+
+        Args:
+            video_path (str): Path to the video file.
+            sample_rate (float): Frames to analyze per second of video.
+            thresholds (Dict): Severity thresholds configuration.
+
+        Returns:
+            List[Dict]: A list of results containing timestamp, score, and severity.
         """
         results = []
         if not self._initialized:
@@ -122,6 +162,7 @@ class ArtifactScorer:
         logger.info(f"Starting ML analysis on {os.path.basename(video_path)}")
         
         try:
+            # frame_sampler returns iterator of (timestamp, frame)
             samples = sample_frames(video_path, sample_rate_fps=sample_rate)
             
             for timestamp, frame in samples:
@@ -144,6 +185,7 @@ class ArtifactScorer:
 # Self-test mechanism
 if __name__ == "__main__":
     import sys
+    # Use standard logging for simple CLI test
     logging.basicConfig(level=logging.INFO)
     
     scorer = ArtifactScorer()
