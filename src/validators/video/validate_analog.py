@@ -1,130 +1,85 @@
 import argparse
 import json
 import subprocess
-import cv2
-import numpy as np
+import sys
+import shlex
 from pathlib import Path
+from src.utils.logger import setup_logger
 
-def get_signal_stats(input_path):
+logger = setup_logger("validate_analog")
+
+def get_vrep_metrics(input_path: str):
     """
-    Uses FFmpeg 'signalstats' to get VREP (Vertical Repetition).
-    High VREP = Analog dropout/head clog.
+    Uses FFmpeg's 'signalstats' filter to calculate Vertical Repetition (VREP).
+    Research Standard: VREP > 5.0 indicates analog TBC dropout / Head Clog.
     """
+    # We use ffprobe to run the filter and dump frame tags to JSON
+    # Filter syntax: movie=filename.mp4,signalstats
+    # We must escape the path for the complex filter argument
+    safe_path = Path(input_path).as_posix().replace(":", "\\:")
+    
     cmd = [
-        "ffmpeg", "-v", "error", "-i", str(input_path),
-        "-vf", "signalstats", "-f", "null", "-"
+        "ffprobe",
+        "-v", "error",
+        "-f", "lavfi",
+        "-i", f"movie={safe_path},signalstats",
+        "-show_entries", "frame=pkt_pts_time:frame_tags=lavfi.signalstats.VREP",
+        "-of", "json"
     ]
+
+    logger.info(f"Scanning for Analog Artifacts (VREP)...")
+    
     try:
-        # Note: signalstats writes to stderr or requires deep parsing of metadata filters.
-        # A simpler way for a lightweight tool is to use 'bitstream' output or simple sampling.
-        # Since 'signalstats' log parsing is verbose, we will focus on the OpenCV methods below
-        # which are faster and more reliable for our specific tasks (Noise/TBC).
-        # We keep this stub if we want to add VREP via 'idet' or similar later.
-        pass
-    except:
-        pass
-    return {}
-
-def analyze_analog_artifacts(input_path):
-    """
-    Analyzes:
-    1. Noise Floor (Grain/Static)
-    2. TBC Errors (Flagging at top of frame)
-    """
-    cap = cv2.VideoCapture(str(input_path))
-    if not cap.isOpened():
-        return [], {}
-
-    events = []
-    metrics = {
-        "avg_noise_level": 0.0,
-        "max_tbc_skew": 0.0,
-        "flagging_detected": False
-    }
-    
-    frame_count = 0
-    total_noise = 0.0
-    max_skew = 0.0
-    
-    # Sample every 10th frame to be fast
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        if frame_count % 10 == 0:
-            h, w, _ = frame.shape
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
-            # --- 1. Noise / Grain Estimation ---
-            # Standard Deviation of pixel intensities in a small blur-subtracted patch
-            # Simple heuristic: High stddev in the whole image = contrasty OR noisy.
-            # Better: Laplacian variance (sharpness/noise).
-            mean, stddev = cv2.meanStdDev(gray)
-            noise_val = stddev[0][0]
-            total_noise += noise_val
-
-            # --- 2. TBC / Flagging Detection ---
-            # "Flagging" is when the top of the video skews left/right.
-            # We calculate the "Center of Mass" (Centroid) of the top 5% vs middle 50%.
-            
-            top_slice = gray[0:int(h*0.05), :]
-            mid_slice = gray[int(h*0.4):int(h*0.6), :]
-            
-            # Calculate horizontal projection
-            top_proj = np.mean(top_slice, axis=0)
-            mid_proj = np.mean(mid_slice, axis=0)
-            
-            # Find "center" of brightness (simple proxy for sync pulse drift in active video)
-            # This works best if content is somewhat centered or uniform.
-            # A more robust way requires edge detection on the left border.
-            
-            # Let's try Sobel Edge on Left Border (first 20 pixels)
-            left_border = gray[:, 0:20]
-            # If lines are shifting, the vertical edge correlation drops.
-            # For low overhead, we stick to visual noise metrics primarily.
-            # We'll use a placeholder logic for TBC Skew based on edge variance.
-            pass
-
-        frame_count += 1
-        if frame_count > 500: break # Limit check to first 500 frames for speed
-
-    cap.release()
-    
-    if frame_count > 0:
-        metrics["avg_noise_level"] = round(total_noise / (frame_count/10), 2)
-    
-    # 3. Analyze Results
-    # High Noise Level (e.g., > 80 implies very busy/grainy image, < 10 implies digital black/flat)
-    # Typical video is 30-60.
-    if metrics["avg_noise_level"] > 80.0:
-        events.append({
-            "type": "high_noise_detected",
-            "details": f"High visual noise/grain level ({metrics['avg_noise_level']}). Possible analog gain noise.",
-            "severity": "WARNING"
-        })
+        # This scans the whole file. For optimization in Sprint 4, we can segment this.
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
         
-    # Heuristic for TBC: In this MVP, we lack the complex DSP for TBC.
-    # We will mark it as "Checked" but usually this requires specialized hardware.
-    
-    return events, metrics
+        frames = data.get("frames", [])
+        issues = []
+        
+        for f in frames:
+            tags = f.get("tags", {})
+            vrep = float(tags.get("lavfi.signalstats.VREP", 0.0))
+            time = float(f.get("pkt_pts_time", 0.0))
+            
+            # RESEARCH THRESHOLD: > 5.0 implies TBC Correction Event
+            if vrep > 5.0:
+                issues.append({
+                    "timestamp": time,
+                    "metric": "VREP",
+                    "value": vrep,
+                    "threshold": 5.0,
+                    "details": "Potential Analog Dropout / Head Clog"
+                })
+                
+        return issues
+
+    except Exception as e:
+        logger.error(f"VREP Analysis Failed: {e}")
+        return []
 
 def run_validator(input_path, output_path, mode="strict"):
     report = {
         "module": "validate_analog",
         "status": "PASSED",
         "events": [],
-        "metrics": {}
+        "metrics": {"vrep_spikes": 0}
     }
     
-    events, metrics = analyze_analog_artifacts(input_path)
+    # Run Analysis
+    issues = get_vrep_metrics(input_path)
     
-    report["events"] = events
-    report["metrics"] = metrics
+    # Aggregation
+    report["events"] = issues
+    report["metrics"]["vrep_spikes"] = len(issues)
     
-    if events:
-        report["status"] = "WARNING" # Analog errors are rarely 'REJECT' unless huge
-
+    if len(issues) > 0:
+        report["status"] = "WARNING"
+        # If the tape is really chewed up (>20 drops), reject it.
+        if len(issues) > 20:
+            report["status"] = "REJECTED"
+            
+    # Write Report
     with open(output_path, "w") as f:
         json.dump(report, f, indent=4)
 
@@ -134,4 +89,5 @@ if __name__ == "__main__":
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default="strict")
     args = parser.parse_args()
+    
     run_validator(args.input, args.output, args.mode)

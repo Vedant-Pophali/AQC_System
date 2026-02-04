@@ -1,60 +1,95 @@
-# --- Python Basics ---
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# ===================================
+# SPECTRA AQC - COMPREHENSIVE GITIGNORE
+# ===================================
 
-# --- Virtual Environments ---
+# --- SYSTEM ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# --- IDEs & EDITORS ---
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.code-workspace
+.project
+.classpath
+.settings/
+
+# --- PYTHON (Core Engine) ---
+__pycache__/
+*.py[cod]
+*$py.class
 venv/
 env/
-.venv/
+.env
+.pytest_cache/
+htmlcov/
+.coverage
+dist/
+build/
+*.spec
 
-# --- IDE & System Metadata ---
-.idea/
-.vscode/
-*.swp
-*.iml
-Thumbs.db
-.DS_Store
-
-# --- Project Outputs ---
-reports/
-*.json
+# --- JAVA / SPRING BOOT (Backend) ---
 target/
-*.json
-
-# --- Media Files ---
-tests/
-*.py
-
-test_media/
-*.mp4
-*.mov
-*.mkv
-*.avi
-*.mxf
-
-# --- Temporary Logs ---
+*.class
+*.jar
+*.war
+*.ear
 *.log
+logs/
+!backend/src/main/resources/logs/.gitkeep
+backend/src/main/resources/application-local.yml
+backend/uploads/*
+!backend/uploads/.gitkeep
 
-# --- Folders to Ignore ---
-boss_demo_output/
-qc_reports/
+# --- NODE / REACT (Frontend) ---
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# --- AQC Generated Artifacts ---
+# --- POSTGRESQL / DATA ---
+*.sql
+*.sqlite
+dump.rdb
+
+# --- PROJECT SPECIFIC ---
+# Ignore uploaded test media but allow the folder structure
+backend/uploads/*
+!backend/uploads/.gitkeep
+temp/
+tmp/
+coverage/
+
+# --- MISC ---
+.gemini/
+
+# --- MEDIA & REPORTS ---
+*.mp4
+*.m4v
+*.mov
+*.mxf
+*.mkv
 *.jpg
+*.jpeg
 *.png
-*.html
 *.json
-!src/**/*.json  # Keep config JSONs if any
-!src/**/*.jpg   # Keep asset JPGs if any
+!package.json
+!package-lock.json
+!tsconfig.json
 
-# --- Test Data & Models ---
+reports/
+qc_reports/
 test_data/
-src/models/brisque/*.yml  # Don't commit the downloaded 15MB model files
-dummy_master.json
-
-# --- IDE & System ---
-.vscode/
-__pycache__/
-*.pyc
+test_media/
+test_output/
+boss_demo_output/
+backend/data/

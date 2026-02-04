@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: spectra-aqc
+  datasource:
+    url: jdbc:h2:file:./data/spectra_aqc
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10GB
+      max-request-size: 10GB
+
+# File Storage Configuration
+app:
+  storage:
+    upload-dir: uploads/

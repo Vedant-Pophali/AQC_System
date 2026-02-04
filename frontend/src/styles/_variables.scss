@@ -1,0 +1,55 @@
+// _variables.scss
+
+// 1. Definition of Brand Colors
+$primary-base: #0d6efd; // Standard Blue
+$secondary-base: #6c757d; // Grey
+$success-base: #198754; // Green
+$danger-base: #dc3545; // Red
+$warning-base: #ffc107; // Yellow
+$info-base: #0dcaf0; // Cyan
+
+$dark-bg: #121212;
+$card-bg: #1e1e1e;
+$text-primary: #e0e0e0;
+$text-secondary: #a0a0a0;
+
+// 2. Tonal Palette Generator Mixin
+@function tint($color, $percentage) {
+  @return mix(white, $color, $percentage);
+}
+
+@function shade($color, $percentage) {
+  @return mix(black, $color, $percentage);
+}
+
+// Generate color map for easy access
+$theme-colors: (
+  "primary": $primary-base,
+  "secondary": $secondary-base,
+  "success": $success-base,
+  "danger": $danger-base,
+  "warning": $warning-base,
+  "info": $info-base,
+  "dark": $dark-bg,
+  "light": $text-primary
+);
+
+// Tonal variations (example usage in components)
+$primary-100: tint($primary-base, 80%);
+$primary-200: tint($primary-base, 60%);
+$primary-300: tint($primary-base, 40%);
+$primary-400: tint($primary-base, 20%);
+$primary-500: $primary-base;
+$primary-600: shade($primary-base, 20%);
+$primary-700: shade($primary-base, 40%);
+$primary-800: shade($primary-base, 60%);
+$primary-900: shade($primary-base, 80%);
+
+// Bootstrap Overrides
+$body-bg: $dark-bg;
+$body-color: $text-primary;
+$card-bg: $card-bg;
+$card-border-color: rgba(255, 255, 255, 0.1);
+
+// Enable CSS Grid
+$enable-cssgrid: true;
