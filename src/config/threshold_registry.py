@@ -11,7 +11,8 @@ PROFILES = {
             "integrated_loudness_target": -23.0,
             "loudness_tolerance": 1.0,
             "true_peak_max": -1.0,
-            "max_silence_sec": 2.0
+            "max_silence_sec": 2.0,
+            "min_phase_correlation": 0.0  # Phase compliance (aphasemeter)
         },
         "video": {
             "black_frame_threshold": 0.1,  # 10% black is black
@@ -42,7 +43,8 @@ PROFILES = {
             "integrated_loudness_target": -24.0, # Dialogue weighted
             "loudness_tolerance": 2.0,
             "true_peak_max": -2.0,
-            "max_silence_sec": 0.5
+            "max_silence_sec": 0.5,
+            "min_phase_correlation": 0.05  # Netflix usually requires very clean phase
         },
         "video": {
             "black_frame_threshold": 0.05, 
@@ -73,7 +75,8 @@ PROFILES = {
             "integrated_loudness_target": -14.0, # AES standard for streaming
             "loudness_tolerance": 3.0,
             "true_peak_max": 0.0,
-            "max_silence_sec": 5.0
+            "max_silence_sec": 5.0,
+            "min_phase_correlation": -0.1  # YouTube is more lenient with phase issues
         },
         "video": {
             "black_frame_threshold": 0.2, 

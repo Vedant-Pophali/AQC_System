@@ -18,6 +18,42 @@ It features a novel **Machine Learning Artifact Detector** (BRISQUE) that "sees"
 
 ---
 
+## 🏗️ Architecture & Configuration
+
+### Execution Engines
+The AQC System supports two execution modes for the analysis pipeline:
+
+1.  **Monolithic Engine (Default)**:
+    - **Stability**: High. Recommended for local environment and single-node deployments.
+    - **Script**: `main.py`
+    - **Behavior**: Runs completely within a single process.
+
+2.  **Spark Engine (Experimental)**:
+    - **Scalability**: High. designed for distributed clusters.
+    - **Script**: `main_spark.py`
+    - **Behavior**: Offloads segment processing to Apache Spark workers.
+
+### ⚙️ Configuration
+You can switch engines by modifying `backend/src/main/resources/application.yml`:
+
+```yaml
+app:
+  aqc:
+    engine: MONOLITH # or SPARK
+```
+
+## 🐞 Troubleshooting
+If you encounter `MojoExecutionException` or H2 database locks:
+1.  Delete `backend/data/*.db` files.
+2.  The system is configured to use H2 in-memory mode by default for development.
+
+## 🤝 Contributing
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
 ## 🚀 Quick Start
 
 ### 1. Installation

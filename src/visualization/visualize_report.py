@@ -21,7 +21,7 @@ ERROR_KNOWLEDGE_BASE = {
     "true_peak_violation": ("Audio Clipping", "Lower the master gain or use a True Peak Limiter to prevent distortion."),
     "phase_inversion_detected": ("Phase Cancellation", "Check stereo width plugins or flip the phase on one channel."),
     "audio_dropout": ("Audio Dropout", "Check source audio tracks for gaps or corrupt cross-fades."),
-    
+    "validate_phase": ("Audio Phase Compliance", "Detected out-of-phase audio. Check stereo width or flip phase on one channel."),
     # Video Errors
     "black_frame_detected": ("Unexpected Black Frames", "Remove the gap in your timeline or add a cross-dissolve."),
     "freeze_frame_detected": ("Frozen Video", "Check your export settings or replace the corrupt clip."),
@@ -257,11 +257,59 @@ def create_interactive_dashboard(report_path, output_path):
     
     plot_div = fig.to_html(full_html=False, include_plotlyjs='cdn')
 
-    # --- 4. ASSEMBLE HTML ---
+    # --- 4. TECHNICAL COMPLIANCE TABLE ---
+    compliance_html = ""
+    modules = data.get("modules", {})
+    if modules:
+        rows = []
+        for mod_name, mod_data in modules.items():
+            # Combine details and metrics for unified lookup
+            all_data = {**mod_data.get("details", {}), **mod_data.get("metrics", {})}
+            
+            if "mean_phase_correlation" in all_data:
+                mean_p = all_data["mean_phase_correlation"]
+                min_p = all_data["min_phase_correlation"]
+                status = mod_data.get("status", "PASSED")
+                rows.append(f"""
+                    <tr>
+                        <td>Audio Phase Correlation</td>
+                        <td>{mean_p} (Mean) / {min_p} (Min)</td>
+                        <td class="{status}">{status}</td>
+                    </tr>
+                """)
+            if "integrated_lufs" in all_data:
+                loud = all_data["integrated_lufs"]
+                tp = all_data.get("true_peak", "N/A")
+                status = mod_data.get("status", "PASSED")
+                rows.append(f"""
+                    <tr>
+                        <td>Loudness / True Peak</td>
+                        <td>{loud} LUFS / {tp} dBTP</td>
+                        <td class="{status}">{status}</td>
+                    </tr>
+                """)
+
+        if rows:
+            compliance_html = f"""
+            <div class="summary-box" style="border-left: 5px solid #3498db;">
+                <h3>Technical Compliance</h3>
+                <table style="width:100%; text-align:left; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid #444;">
+                        <th style="padding:10px;">Parameter</th>
+                        <th style="padding:10px;">Value</th>
+                        <th style="padding:10px;">Status</th>
+                    </tr>
+                    {"".join(rows)}
+                </table>
+            </div>
+            """
+
+    # --- 5. ASSEMBLE HTML ---
     html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
         <title>AQC Report: {input_filename}</title>
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 20px; }}
@@ -303,11 +351,12 @@ def create_interactive_dashboard(report_path, output_path):
             </div>
 
             {summary_html}
+            {compliance_html}
 
             <div class="video-box">
                 <video id="qc-player" controls>
-                    <source src="../{input_filename}" type="video/mp4">
-                    <p style="color:white; padding:20px;">Video not found. Ensure '{input_filename}' is in the folder above this report.</p>
+                    <source src="video" type="video/mp4">
+                    <p style="color:white; padding:20px;">Video not found or incompatible format.</p>
                 </video>
             </div>
 

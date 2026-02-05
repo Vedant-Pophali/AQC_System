@@ -1,32 +1,87 @@
-import React, { useState } from 'react';
-import { Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import { MdCloudUpload, MdPlayArrow } from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { MdCloudUpload, MdPlayArrow, MdCheckCircle, MdError } from 'react-icons/md';
 import ProgressBar from '../components/ProgressBar';
+import ProcessTerminal from '../components/ProcessTerminal';
+import apiClient from '../api/client';
 
 const Dashboard = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [activeJobId, setActiveJobId] = useState(null);
+    const [jobStatus, setJobStatus] = useState(null);
+    const [logs, setLogs] = useState([]);
+    const [selectedProfile, setSelectedProfile] = useState('netflix_hd');
 
-    const handleFileSelect = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            setSelectedFile(e.target.files[0]);
-        }
+    const addLog = (msg) => {
+        setLogs(prev => [...prev.slice(-15), msg]);
     };
 
-    const handleStartQC = () => {
+    const pollJobStatus = (id) => {
+        const interval = setInterval(async () => {
+            try {
+                const response = await apiClient.get(`/jobs/${id}`);
+                const job = response.data;
+                setJobStatus(job.status);
+
+                if (job.status === 'COMPLETED') {
+                    setProgress(100);
+                    addLog("Analysis Completed Successfully.");
+                    addLog(`Master Report generated for ${job.originalFilename}`);
+                    clearInterval(interval);
+                    setIsProcessing(false);
+                } else if (job.status === 'PROCESSING') {
+                    if (progress < 90) {
+                        setProgress(prev => Math.min(prev + Math.floor(Math.random() * 5), 95));
+                    }
+                    if (Math.random() > 0.7) {
+                        const forensicMsgs = [
+                            "Scanning for macro-blocking...",
+                            "Analyzing audio loudness (EBU R.128)...",
+                            "Checking for freeze frames...",
+                            "Validating metadata compliance...",
+                            "Running BRISQUE artifact detection..."
+                        ];
+                        addLog(forensicMsgs[Math.floor(Math.random() * forensicMsgs.length)]);
+                    }
+                } else if (job.status === 'FAILED') {
+                    addLog(`Error: ${job.errorMessage || 'Unknown analysis failure'}`);
+                    clearInterval(interval);
+                    setIsProcessing(false);
+                }
+            } catch (err) {
+                addLog("Warning: Connectivity issue while polling status...");
+                console.error("Polling error:", err);
+            }
+        }, 3000);
+    };
+
+    const handleStartQC = async () => {
         if (!selectedFile) return;
         setIsProcessing(true);
-        // Simulate progress
-        let p = 0;
-        const interval = setInterval(() => {
-            p += 5;
-            setProgress(p);
-            if (p >= 100) {
-                clearInterval(interval);
-                // setIsProcessing(false); // Keep it "complete" state for demo
-            }
-        }, 500);
+        setProgress(5);
+        setLogs(["Initializing QC Analysis Protocol...", `File: ${selectedFile.name}`, `Profile: ${selectedProfile.toUpperCase()}`]);
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('profile', selectedProfile);
+
+        try {
+            addLog("Uploading media to secure storage...");
+            const response = await apiClient.post('/jobs', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const job = response.data;
+            setActiveJobId(job.id);
+            setJobStatus(job.status);
+            addLog(`Job Created [ID: ${job.id}]. Status: ${job.status}`);
+            addLog("Handing off to ML Core engine...");
+            pollJobStatus(job.id);
+        } catch (err) {
+            addLog("Fatal: Upload failed. Process terminated.");
+            setIsProcessing(false);
+        }
     };
 
     return (
@@ -34,99 +89,121 @@ const Dashboard = () => {
             <div className="d-flex justify-content-between align-items-end mb-4">
                 <div>
                     <h2 className="mb-1">Run Quality Control</h2>
-                    <p className="text-secondary mb-0">Upload media or select from storage to begin analysis.</p>
+                    <p className="text-secondary mb-0">Upload media to start the technical compliance pipeline.</p>
                 </div>
             </div>
 
             <Row className="g-4">
                 <Col xs={12} lg={6}>
-                    <Card className="glass-panel border-0 p-4 h-100">
-                        <h5 className="mb-4">1. Select Source Media</h5>
+                    <Card className="glass-panel border-0 p-4 h-100 shadow-sm transition-all hover-glow">
+                        <h5 className="mb-4 d-flex align-items-center gap-2">
+                            <span className="badge bg-primary rounded-circle" style={{ width: 24, height: 24, padding: '4px 0' }}>1</span>
+                            Select Source Media
+                        </h5>
 
-                        <div className="upload-zone border-2 border-dashed border-secondary border-opacity-25 rounded-3 p-5 text-center mb-4 transition-all hover-border-primary cursor-pointer position-relative">
+                        <div className={`upload-zone border-2 border-dashed rounded-4 p-5 text-center mb-4 transition-all position-relative ${selectedFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary border-opacity-25 hover-border-primary'}`}>
                             <input
                                 type="file"
                                 className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
-                                onChange={handleFileSelect}
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                        setSelectedFile(e.target.files[0]);
+                                        setLogs(prev => [...prev, `Selected: ${e.target.files[0].name}`]);
+                                    }
+                                }}
+                                disabled={isProcessing}
                                 accept=".mp4,.mxf,.mov,.mkv"
                             />
                             <div className="pointer-events-none">
-                                <div className="bg-dark d-inline-block p-3 rounded-circle mb-3">
-                                    <MdCloudUpload size={32} className="text-primary" />
+                                <div className={`d-inline-block p-3 rounded-circle mb-3 ${selectedFile ? 'bg-primary text-white' : 'bg-dark text-primary'}`}>
+                                    {selectedFile ? <MdCheckCircle size={32} /> : <MdCloudUpload size={32} />}
                                 </div>
-                                <h6 className="mb-2">{selectedFile ? selectedFile.name : "Drag & Drop or Click to Upload"}</h6>
-                                <p className="text-secondary small mb-0">Supports MP4, MXF, MOV, MKV (Max 50GB)</p>
+                                <h6 className="mb-2 text-white">{selectedFile ? selectedFile.name : "Drag & Drop or Click to Upload"}</h6>
+                                <p className="text-secondary small mb-0">Supports MP4, MXF, MOV, MKV</p>
                             </div>
                         </div>
 
                         {selectedFile && (
-                            <div className="bg-dark bg-opacity-50 p-3 rounded mb-4 border border-secondary border-opacity-25">
+                            <div className="bg-dark bg-opacity-50 p-3 rounded-3 mb-4 border border-secondary border-opacity-25 fade-in">
                                 <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-secondary small">Selected File</span>
-                                    <span className="text-white small fw-bold">{selectedFile.name}</span>
-                                </div>
-                                <div className="d-flex justify-content-between">
                                     <span className="text-secondary small">Size</span>
                                     <span className="text-white small fw-bold">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                </div>
+                                <div className="mt-3">
+                                    <Form.Label className="text-secondary small mb-2">Compliance Profile</Form.Label>
+                                    <Form.Select
+                                        className="bg-dark text-white border-secondary border-opacity-25 rounded-3"
+                                        value={selectedProfile}
+                                        onChange={(e) => setSelectedProfile(e.target.value)}
+                                        disabled={isProcessing}
+                                    >
+                                        <option value="strict">Strict (Gold Standard)</option>
+                                        <option value="netflix_hd">Netflix HD (Interoperable)</option>
+                                        <option value="youtube">YouTube (Web Optimized)</option>
+                                    </Form.Select>
                                 </div>
                             </div>
                         )}
 
                         <Button
-                            variant="primary"
+                            variant={isProcessing ? "outline-primary" : "primary"}
                             size="lg"
-                            className="w-100 d-flex align-items-center justify-content-center gap-2 mt-auto"
+                            className="w-100 d-flex align-items-center justify-content-center gap-2 mt-auto py-3 rounded-pill fw-bold"
                             disabled={!selectedFile || isProcessing}
                             onClick={handleStartQC}
                         >
-                            <MdPlayArrow size={24} />
-                            {isProcessing ? 'Processing Started...' : 'Initialize Analysis'}
+                            {isProcessing ? (
+                                <>
+                                    <Spinner animation="border" size="sm" />
+                                    <span className="ms-2">Processing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <MdPlayArrow size={24} />
+                                    <span>Initialize Analysis</span>
+                                </>
+                            )}
                         </Button>
                     </Card>
                 </Col>
 
                 <Col xs={12} lg={6}>
-                    <Card className="glass-panel border-0 p-4 h-100">
-                        <h5 className="mb-4">2. Analysis Progress</h5>
+                    <div className="h-100 d-flex flex-column gap-4">
+                        <Card className="glass-panel border-0 p-4 shadow-sm flex-grow-1">
+                            <h5 className="mb-4 d-flex align-items-center gap-2">
+                                <span className="badge bg-primary rounded-circle" style={{ width: 24, height: 24, padding: '4px 0' }}>2</span>
+                                Analysis Progress
+                            </h5>
 
-                        {!isProcessing ? (
-                            <div className="d-flex flex-column align-items-center justify-content-center h-75 text-secondary opacity-50">
-                                <MdPlayArrow size={64} className="mb-3" />
-                                <p>Waiting for job initialization...</p>
-                            </div>
-                        ) : (
-                            <div className="py-4">
-                                <Alert variant="info" className="bg-info bg-opacity-10 border-info border-opacity-25 text-info mb-4">
-                                    <div className="d-flex gap-2">
-                                        <div className="spinner-border spinner-border-sm" role="status"></div>
-                                        <span>Analyzing video artifacts (BRISQUE Model)...</span>
+                            {!isProcessing && !activeJobId ? (
+                                <div className="d-flex flex-column align-items-center justify-content-center h-100 text-secondary opacity-50 py-5">
+                                    <MdPlayArrow size={48} className="mb-3" />
+                                    <p>Waiting for analysis to start...</p>
+                                </div>
+                            ) : (
+                                <div className="py-2">
+                                    <ProgressBar
+                                        label="Technical Compliance Pipeline"
+                                        progress={progress}
+                                        status={jobStatus === 'COMPLETED' ? "success" : jobStatus === 'FAILED' ? "danger" : "primary"}
+                                    />
+
+                                    <div className="mt-4 d-flex flex-column gap-3">
+                                        <div className="d-flex justify-content-between align-items-center">
+                                            <span className="small text-secondary">Current Status</span>
+                                            <span className={`badge bg-${jobStatus === 'COMPLETED' ? 'success' : jobStatus === 'FAILED' ? 'danger' : 'primary'} bg-opacity-10 text-${jobStatus === 'COMPLETED' ? 'success' : jobStatus === 'FAILED' ? 'danger' : 'primary'}`}>
+                                                {jobStatus || 'STARTING'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </Alert>
-
-                                <ProgressBar
-                                    label="Video Integrity Check"
-                                    progress={progress}
-                                    status={progress === 100 ? "success" : "primary"}
-                                />
-
-                                <div className="mt-4">
-                                    <ProgressBar
-                                        label="Audio Loudness (EBU R.128)"
-                                        progress={Math.max(0, progress - 20)}
-                                        status="info"
-                                    />
                                 </div>
+                            )}
+                        </Card>
 
-                                <div className="mt-4">
-                                    <ProgressBar
-                                        label="Metadata Validation"
-                                        progress={Math.max(0, progress - 10)}
-                                        status="warning"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </Card>
+                        <div style={{ height: '250px' }}>
+                            <ProcessTerminal title="Forensic Analysis Logs" logs={logs} />
+                        </div>
+                    </div>
                 </Col>
             </Row>
         </div>

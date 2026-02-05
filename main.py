@@ -40,6 +40,7 @@ VALIDATORS = [
     # 4. Audio Quality
     ("audio", "validate_loudness"),
     ("audio", "validate_audio_signal"),
+    ("audio", "validate_phase"),
     # 5. Synchronization
     ("video", "validate_avsync"),
 ]

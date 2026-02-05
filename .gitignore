@@ -86,10 +86,24 @@ coverage/
 !package-lock.json
 !tsconfig.json
 
+# --- OUTPUT DIRECTORIES ---
 reports/
 qc_reports/
+backend/data/
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# --- TEST & DEBUG ARTIFACTS ---
 test_data/
 test_media/
 test_output/
+test_phase/
+test_profile_selection*/
+test_spark/
 boss_demo_output/
-backend/data/
+debug_*/
+final_verification*/
+
+# --- MISC ---
+package_for_boss.py
+.gemini/

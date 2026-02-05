@@ -42,7 +42,7 @@ class SpectraIntegrationTest {
     @Test
     void testUploadAndJobCreation() throws Exception {
         // Mock Python Service to return immediate success
-        Mockito.when(pythonExecutionService.runAnalysis(anyLong(), anyString()))
+        Mockito.when(pythonExecutionService.runAnalysis(anyLong(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture("test-reports/report.json"));
 
         MockMultipartFile file = new MockMultipartFile(

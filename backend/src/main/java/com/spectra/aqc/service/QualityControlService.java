@@ -17,7 +17,7 @@ public class QualityControlService {
     private final PythonExecutionService pythonExecutionService;
     private final JobRepository jobRepository;
 
-    public QualityControlJob createJob(MultipartFile file) {
+    public QualityControlJob createJob(MultipartFile file, String profile) {
         // 1. Store File
         String filePath = fileStorageService.storeFile(file);
 
@@ -25,19 +25,20 @@ public class QualityControlService {
         QualityControlJob job = new QualityControlJob();
         job.setOriginalFilename(file.getOriginalFilename());
         job.setFilePath(filePath);
+        // Assuming we might want to store profile in DB, check model or just pass it
         job = jobRepository.save(job);
 
         // 3. Trigger Async Analysis
-        triggerAnalysis(job);
+        triggerAnalysis(job, profile);
 
         return job;
     }
 
-    private void triggerAnalysis(QualityControlJob job) {
+    private void triggerAnalysis(QualityControlJob job, String profile) {
         job.setStatus(QualityControlJob.JobStatus.PROCESSING);
         jobRepository.save(job);
 
-        pythonExecutionService.runAnalysis(job.getId(), job.getFilePath())
+        pythonExecutionService.runAnalysis(job.getId(), job.getFilePath(), profile)
             .thenAccept(reportPath -> {
                 job.setStatus(QualityControlJob.JobStatus.COMPLETED);
                 job.setResultJsonPath(reportPath);
@@ -73,6 +74,69 @@ public class QualityControlService {
             return java.nio.file.Files.readString(java.nio.file.Path.of(job.getResultJsonPath()));
         } catch (Exception e) {
             throw new RuntimeException("Failed to read report file", e);
+        }
+    }
+
+    public String getJobVisual(Long id) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        if (job.getResultJsonPath() == null) {
+            throw new RuntimeException("Report not ready");
+        }
+
+        try {
+            java.nio.file.Path jsonPath = java.nio.file.Path.of(job.getResultJsonPath());
+            java.nio.file.Path visualPath = jsonPath.getParent().resolve("dashboard.html");
+            return java.nio.file.Files.readString(visualPath);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read visualization file", e);
+        }
+    }
+
+    public java.io.File getJobVideoFile(Long id) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        java.io.File file = new java.io.File(job.getFilePath());
+        if (!file.exists()) {
+            throw new RuntimeException("Video file not found at: " + job.getFilePath());
+        }
+        return file;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteJob(Long id) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        // 1. Delete associated files/directories
+        if (job.getResultJsonPath() != null) {
+            try {
+                java.nio.file.Path reportDir = java.nio.file.Path.of(job.getResultJsonPath()).getParent();
+                java.nio.file.Path jobUploadDir = reportDir.getParent();
+                
+                // Delete the entire job folder (e.g., uploads/job_1_...)
+                if (java.nio.file.Files.exists(jobUploadDir)) {
+                    org.springframework.util.FileSystemUtils.deleteRecursively(jobUploadDir);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to delete job files: " + e.getMessage());
+            }
+        }
+
+        // 2. Delete DB record
+        jobRepository.delete(job);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteJobs(java.util.List<Long> ids) {
+        for (Long id : ids) {
+            try {
+                deleteJob(id);
+            } catch (Exception e) {
+                System.err.println("Failed to delete job " + id + ": " + e.getMessage());
+            }
         }
     }
 }

@@ -2,7 +2,7 @@ spring:
   application:
     name: spectra-aqc
   datasource:
-    url: jdbc:h2:file:./data/spectra_aqc
+    url: jdbc:h2:mem:aqc_db;DB_CLOSE_DELAY=-1
     username: sa
     password: password
     driver-class-name: org.h2.Driver
@@ -25,3 +25,7 @@ spring:
 app:
   storage:
     upload-dir: uploads/
+  aqc:
+    script-path: ../main.py
+    spark-script-path: ../main_spark.py
+    engine: MONOLITH # Options: MONOLITH, SPARK
