@@ -1,8 +1,5 @@
 # AQC System v2.0 - ML-Powered Quality Control
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![Status: Production](https://img.shields.io/badge/Status-Production%20Ready-green.svg)](docs/COMPLIANCE.md)
 
 ## 📖 Overview
 The **Automated Quality Control (AQC) System** is an enterprise-grade pipeline designed to validate broadcast and streaming media against strict technical compliance standards (EBU R.128, Netflix Delivery Specs). 
