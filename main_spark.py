@@ -32,6 +32,25 @@ VALIDATORS = [
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
+def zip_source_code(src_dir: Path, output_zip: Path):
+    """Compresses the src/ directory into a zip file for Spark workers."""
+    if output_zip.exists():
+        os.remove(output_zip)
+    
+    import zipfile
+    logger.info(f"Packaging dependencies from {src_dir} to {output_zip}...")
+    with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, _, files in os.walk(src_dir):
+            for file in files:
+                # Keep __pycache__ out
+                if "__pycache__" in root:
+                    continue
+                file_path = Path(root) / file
+                # Archive name should start with 'src/'
+                arcname = file_path.relative_to(src_dir.parent)
+                zf.write(file_path, arcname)
+    logger.info("Dependency package created.")
+
 def main():
     parser = argparse.ArgumentParser(description="AQC Distributed Spark Pipeline")
     parser.add_argument("--input", required=True, help="Path to input video file")
@@ -39,21 +58,40 @@ def main():
     parser.add_argument("--mode", default="strict", help="QC Profile")
     parser.add_argument("--segments", type=int, default=60, help="Segment duration in seconds")
     
+    # Spark Dynamic Configs
+    parser.add_argument("--spark_master", default="local[*]", help="Spark Master URL")
+    parser.add_argument("--spark_driver_memory", default="2g", help="Driver Memory")
+    parser.add_argument("--spark_executor_memory", default="2g", help="Executor Memory")
+    parser.add_argument("--spark_cores", default="4", help="Max cores")
+
     args = parser.parse_args()
     input_video = Path(args.input).resolve()
     base_outdir = Path(args.outdir).resolve()
+    project_root = Path(__file__).parent.resolve()
+
+    # 1. Package Dependencies
+    src_dir = project_root / "src"
+    dep_zip = project_root / "aqc_deployment.zip"
+    zip_source_code(src_dir, dep_zip)
     
-    # 1. Setup Spark
-    logger.info("Initializing Spark Session...")
+    # 2. Setup Spark
+    logger.info(f"Initializing Spark Session (Master: {args.spark_master})...")
     spark = SparkSession.builder \
         .appName("SpectraAQC-Distributed") \
-        .master("local[*]") \
+        .master(args.spark_master) \
+        .config("spark.driver.memory", args.spark_driver_memory) \
+        .config("spark.executor.memory", args.spark_executor_memory) \
+        .config("spark.cores.max", args.spark_cores) \
         .config("spark.python.worker.timeout", "600") \
         .config("spark.task.maxFailures", "4") \
         .config("spark.python.worker.faulthandler.enabled", "true") \
         .getOrCreate()
     
-    # 2. Segment Video
+    # Ship code to workers
+    spark.sparkContext.addPyFile(str(dep_zip))
+    logger.info("Dependencies shipped to cluster.")
+
+    # 3. Segment Video
     job_dir = base_outdir / f"{input_video.stem}_spark_qc"
     segments_dir = job_dir / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
@@ -66,7 +104,7 @@ def main():
         spark.stop()
         return
 
-    # 3. Create RDD and Map
+    # 4. Create RDD and Map
     logger.info(f"Dispatching {len(segments)} segments to Spark cluster...")
     segments_rdd = spark.sparkContext.parallelize(segments, len(segments))
     
@@ -80,7 +118,7 @@ def main():
     
     logger.info(f"Analysis completed in {total_duration:.2f} seconds.")
 
-    # 4. Aggregate Results
+    # 5. Aggregate Results
     logger.info("Aggregating results...")
     aggregator = MasterAggregator(results, mode)
     master_report = aggregator.aggregate()
@@ -92,10 +130,9 @@ def main():
     master_path = job_dir / "Master_Report.json"
     aggregator.save(master_path)
     
-    # 5. Generate Dashboard (using existing visualizer)
+    # 6. Generate Dashboard (using existing visualizer)
     dashboard_path = job_dir / "dashboard.html"
     try:
-        from src.visualization import visualize_report
         # We need to run it as a module or call it directly
         # Since we are already in the environment, we can import and call
         import subprocess

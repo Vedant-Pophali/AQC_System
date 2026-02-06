@@ -41,6 +41,28 @@ def validate_audio_phase(input_video, output_report, mode="strict"):
         }
     }
 
+    # 1. Pre-check: Does audio exist?
+    has_audio_cmd = [
+        "ffprobe", "-v", "error",
+        "-select_streams", "a",
+        "-show_entries", "stream=index",
+        "-of", "csv=p=0",
+        str(input_video)
+    ]
+    try:
+        audio_check = subprocess.run(has_audio_cmd, capture_output=True, text=True)
+        if not audio_check.stdout.strip():
+            # No audio streams found
+            report["status"] = "WARNING"
+            report["effective_status"] = "WARNING"
+            report["details"]["issue"] = "No audio stream detected."
+            with open(output_report, "w") as f:
+                json.dump(report, f, indent=4)
+            return
+    except Exception:
+        # If ffprobe fails completely, assume bad file
+        pass
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         data = json.loads(result.stdout)
@@ -77,6 +99,10 @@ def validate_audio_phase(input_video, output_report, mode="strict"):
                 report["status"] = "WARNING"
                 report["effective_status"] = "WARNING"
                 report["details"]["issue"] = "Moments of extreme phase inversion detected."
+        else:
+            report["status"] = "WARNING"
+            report["effective_status"] = "WARNING"
+            report["details"]["issue"] = "No phase data found (Silent or No Audio)."
 
     except Exception as e:
         report["status"] = "CRASHED"

@@ -81,6 +81,7 @@ coverage/
 *.jpg
 *.jpeg
 *.png
+*.zip
 *.json
 !package.json
 !package-lock.json

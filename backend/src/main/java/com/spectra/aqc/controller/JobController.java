@@ -96,4 +96,14 @@ public class JobController {
         qcService.deleteJobs(ids);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/fix")
+    public ResponseEntity<Void> triggerRemediation(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
+        String fixType = payload.get("fixType");
+        if (fixType == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        qcService.triggerRemediation(id, fixType);
+        return ResponseEntity.accepted().build();
+    }
 }

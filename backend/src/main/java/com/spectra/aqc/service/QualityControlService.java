@@ -21,11 +21,13 @@ public class QualityControlService {
         // 1. Store File
         String filePath = fileStorageService.storeFile(file);
 
-        // 2. Create DB Entitiy
+        // 2. Create DB Entity
         QualityControlJob job = new QualityControlJob();
         job.setOriginalFilename(file.getOriginalFilename());
         job.setFilePath(filePath);
-        // Assuming we might want to store profile in DB, check model or just pass it
+        job.setProfile(profile);
+        job.setStatus(QualityControlJob.JobStatus.PENDING);
+        
         job = jobRepository.save(job);
 
         // 3. Trigger Async Analysis
@@ -34,7 +36,7 @@ public class QualityControlService {
         return job;
     }
 
-    private void triggerAnalysis(QualityControlJob job, String profile) {
+    public void triggerAnalysis(QualityControlJob job, String profile) {
         job.setStatus(QualityControlJob.JobStatus.PROCESSING);
         jobRepository.save(job);
 
@@ -55,7 +57,7 @@ public class QualityControlService {
     }
 
     public List<QualityControlJob> getAllJobs() {
-        return jobRepository.findAll();
+        return jobRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Optional<QualityControlJob> getJob(Long id) {
@@ -138,5 +140,26 @@ public class QualityControlService {
                 System.err.println("Failed to delete job " + id + ": " + e.getMessage());
             }
         }
+    }
+
+    public void triggerRemediation(Long jobId, String fixType) {
+        QualityControlJob job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+
+        job.setFixStatus("PROCESSING");
+        jobRepository.save(job);
+
+        pythonExecutionService.runRemediation(job.getId(), job.getFilePath(), fixType)
+            .thenAccept(fixedPath -> {
+                job.setFixStatus("COMPLETED");
+                job.setFixedFilePath(fixedPath);
+                jobRepository.save(job);
+            })
+            .exceptionally(ex -> {
+                job.setFixStatus("FAILED");
+                job.setErrorMessage("Remediation Failed: " + ex.getMessage());
+                jobRepository.save(job);
+                return null;
+            });
     }
 }

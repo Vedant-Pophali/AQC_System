@@ -82,23 +82,31 @@ def check_loudness(file_path: Path, target_lufs: float = -23.0, true_peak_max: f
         lufs = metrics["integrated_lufs"]
         peak = metrics["true_peak"]
 
-        # Check Integrated Loudness
-        if not (target_lufs - tolerance <= lufs <= target_lufs + tolerance):
-            metrics["status"] = "REJECTED"
+        if lufs == -99.0:
+            metrics["status"] = "WARNING"
             metrics["events"].append({
-                "type": "loudness_violation",
-                "details": f"Integrated Loudness {lufs} LUFS is outside target {target_lufs} +/- {tolerance}.",
-                "severity": "high"
+                "type": "missing_audio",
+                "details": "Audio analysis returned no data (Possible silent track or no audio stream).",
+                "severity": "medium"
             })
+        else:
+            # Check Integrated Loudness
+            if not (target_lufs - tolerance <= lufs <= target_lufs + tolerance):
+                metrics["status"] = "REJECTED"
+                metrics["events"].append({
+                    "type": "loudness_violation",
+                    "details": f"Integrated Loudness {lufs} LUFS is outside target {target_lufs} +/- {tolerance}.",
+                    "severity": "high"
+                })
 
-        # Check True Peak
-        if peak > true_peak_max:
-            metrics["status"] = "REJECTED"
-            metrics["events"].append({
-                "type": "true_peak_violation",
-                "details": f"True Peak {peak} dBTP exceeds limit {true_peak_max} dBTP.",
-                "severity": "high"
-            })
+            # Check True Peak
+            if peak > true_peak_max:
+                metrics["status"] = "REJECTED"
+                metrics["events"].append({
+                    "type": "true_peak_violation",
+                    "details": f"True Peak {peak} dBTP exceeds limit {true_peak_max} dBTP.",
+                    "severity": "high"
+                })
 
     except Exception as e:
         logger.error(f"Loudness analysis failed: {e}")

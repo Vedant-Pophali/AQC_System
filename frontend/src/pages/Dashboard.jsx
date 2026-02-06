@@ -84,6 +84,31 @@ const Dashboard = () => {
         }
     };
 
+    const handleRemediation = async (type) => {
+        try {
+            addLog(`Initiating Remediation: ${type}...`);
+            await apiClient.post(`/jobs/${activeJobId}/fix`, { fixType: type });
+            addLog("Remediation queued. Processing...");
+
+            // Poll for fix completion
+            const fixInterval = setInterval(async () => {
+                const res = await apiClient.get(`/jobs/${activeJobId}`);
+                const job = res.data;
+                if (job.fixStatus === 'COMPLETED') {
+                    addLog(`✅ Remediation Complete! Fixed file available.`);
+                    clearInterval(fixInterval);
+                    alert(`Fixed file available at: ${job.fixedFilePath}`); // Simple alert for now
+                } else if (job.fixStatus === 'FAILED') {
+                    addLog(`❌ Remediation Failed: ${job.errorMessage}`);
+                    clearInterval(fixInterval);
+                }
+            }, 2000);
+
+        } catch (err) {
+            addLog("Error triggering remediation.");
+        }
+    };
+
     return (
         <div className="fade-in">
             <div className="d-flex justify-content-between align-items-end mb-4">
@@ -195,10 +220,38 @@ const Dashboard = () => {
                                                 {jobStatus || 'STARTING'}
                                             </span>
                                         </div>
+
+                                        {jobStatus === 'COMPLETED' && (
+                                            <Button
+                                                variant="success"
+                                                className="w-100 mt-2 py-2 fw-bold shadow-sm"
+                                                onClick={() => window.open(`http://localhost:8080/api/v1/jobs/${activeJobId}/visual`, '_blank')}
+                                            >
+                                                <MdCheckCircle className="me-2" size={20} />
+                                                View Full QC Report
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             )}
                         </Card>
+
+                        {jobStatus === 'COMPLETED' && (
+                            <Card className="glass-panel border-0 p-4 shadow-sm fade-in">
+                                <h5 className="mb-3 d-flex align-items-center gap-2">
+                                    <span className="badge bg-warning text-dark rounded-circle" style={{ width: 24, height: 24, padding: '4px 0' }}>3</span>
+                                    Auto-Fix Actions
+                                </h5>
+                                <div className="d-grid gap-2">
+                                    <Button variant="outline-info" onClick={() => handleRemediation("loudness_norm")}>
+                                        🔊 Loudness Normalize (EBU R128)
+                                    </Button>
+                                    <Button variant="outline-warning" onClick={() => handleRemediation("transcode_lossless")}>
+                                        ✨ Fix Compression Artifacts (HQ)
+                                    </Button>
+                                </div>
+                            </Card>
+                        )}
 
                         <div style={{ height: '250px' }}>
                             <ProcessTerminal title="Forensic Analysis Logs" logs={logs} />
@@ -209,5 +262,7 @@ const Dashboard = () => {
         </div>
     );
 };
+
+
 
 export default Dashboard;

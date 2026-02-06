@@ -23,19 +23,23 @@ def get_ffprobe_data(file_path):
     except Exception:
         return None
 
-def check_eof_integrity(file_path):
+def check_eof_integrity(file_path, hwaccel="none"):
     """
     1.1 Early EOF Detection
     Attempts to decode the stream logic to ensure it's not truncated.
     """
     try:
-        cmd = [
-            "ffmpeg",
+        cmd = ["ffmpeg"]
+        
+        if hwaccel != "none":
+            cmd.extend(["-hwaccel", hwaccel])
+            
+        cmd.extend([
             "-v", "error",
             "-i", str(file_path),
             "-f", "null",
             "-"
-        ]
+        ])
         # Quick scan of container structure
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
         return True, "File structure is valid."
@@ -43,7 +47,7 @@ def check_eof_integrity(file_path):
         err_msg = e.stderr.decode('utf-8')[:200] if e.stderr else "Unknown Error"
         return False, f"Integrity Check Failed: {err_msg}"
 
-def analyze_structure(input_path, output_path, mode="strict"):
+def analyze_structure(input_path, output_path, mode="strict", hwaccel="none"):
     input_path = Path(input_path)
     
     report = {
@@ -119,7 +123,7 @@ def analyze_structure(input_path, output_path, mode="strict"):
             })
 
     # 5. Integrity Check (Deep Scan)
-    valid_integrity, msg = check_eof_integrity(input_path)
+    valid_integrity, msg = check_eof_integrity(input_path, hwaccel=hwaccel)
     if not valid_integrity:
         report["status"] = "REJECTED"
         report["events"].append({
@@ -146,5 +150,6 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default="strict")
+    parser.add_argument("--hwaccel", default="none")
     args = parser.parse_args()
-    analyze_structure(args.input, args.output, args.mode)
+    analyze_structure(args.input, args.output, args.mode, args.hwaccel)

@@ -15,6 +15,10 @@ logger = logging.getLogger("visualize_report")
 # --- 1. INTELLIGENT REMEDIATION DICTIONARY ---
 # Maps errors to: (Human Name, Actionable Advice)
 ERROR_KNOWLEDGE_BASE = {
+    # Archival (NEW)
+    "broadcast_illegal": ("Broadcast Legal Violation", "Video levels exceed 16-235 range. Apply a 'Broadcast Safe' filter or color grade."),
+    "saturation_warning": ("Oversaturation", "Chroma levels are too high. Desaturate or check gamut-limiting."),
+
     # Audio
     "loudness_check": ("Audio Loudness Violation", "Apply a transparent limiter or normalizer to hit target LUFS."),
     "loudness_compliance_failed": ("Loudness Standard Fail", "Re-mix audio to EBU R128 (-23 LUFS) or YouTube (-14 LUFS) standards."),
@@ -91,6 +95,9 @@ def create_interactive_dashboard(report_path, output_path):
         # ML Artifacts (NEW LOGIC)
         if "artifact" in evt or "bitrate" in evt or "block" in details: return "Video Quality"
         if "black" in evt or "freeze" in evt or "interlace" in evt: return "Video Error"
+        
+        # Archival Signal (NEW)
+        if "broadcast" in evt or "saturation" in evt or "luma" in details: return "Archival"
         
         if "audio" in mod or "loudness" in mod or "silence" in evt: return "Audio"
         if "sync" in mod or "drift" in evt: return "Sync"
@@ -192,6 +199,7 @@ def create_interactive_dashboard(report_path, output_path):
         "Audio": "#1f77b4",         # Blue
         "Video Error": "#d62728",   # Red
         "Video Quality": "#ff7f0e", # Orange (ML Artifacts)
+        "Archival": "#00bcd4",      # Cyan (NEW)
         "Sync": "#2ca02c",          # Green
         "Structure": "#9467bd",     # Purple
         "Video": "#7f7f7f"          # Grey (Default)

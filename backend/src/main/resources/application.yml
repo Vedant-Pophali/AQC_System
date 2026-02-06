@@ -1,21 +1,44 @@
 spring:
   application:
     name: spectra-aqc
+  # Database Configuration
+  # Default: H2 In-Memory (Dev/Test)
   datasource:
-    url: jdbc:h2:mem:aqc_db;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:./data/aqc_db;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
     username: sa
     password: password
-    driver-class-name: org.h2.Driver
+
+  # SCALABILITY: Database Options
+  # 1. PostgreSQL (Recommended for Production)
+  # datasource:
+  #   url: jdbc:postgresql://localhost:5432/aqc_db
+  #   username: postgres
+  #   password: your_password
+  #   driverClassName: org.postgresql.Driver
+
+  # 2. MySQL / MariaDB
+  # datasource:
+  #   url: jdbc:mysql://localhost:3306/aqc_db?useSSL=false&serverTimezone=UTC
+  #   username: root
+  #   password: your_password
+  #   driverClassName: com.mysql.cj.jdbc.Driver
+
+  # 3. MongoDB (NoSQL)
+  # Note: Requires 'spring-boot-starter-data-mongodb' dependency and swapping @Entity for @Document
+  # spring:
+  #   data:
+  #     mongodb:
+  #       uri: mongodb://localhost:27017/aqc_db
+
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    # For Postgres use: org.hibernate.dialect.PostgreSQLDialect
+    # For MySQL use: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: update
-    database-platform: org.hibernate.dialect.H2Dialect
-    properties:
-      hibernate:
-        format_sql: true
-  h2:
-    console:
-      enabled: true
+    show-sql: false
+  
   servlet:
     multipart:
       max-file-size: 10GB
@@ -29,3 +52,6 @@ app:
     script-path: ../main.py
     spark-script-path: ../main_spark.py
     engine: MONOLITH # Options: MONOLITH, SPARK
+    hwaccel:
+      enabled: false
+      device: cuda # Options: cuda, vulkan, qsv, dxva2

@@ -10,14 +10,16 @@ from pathlib import Path
 DUPLICATE_THRESHOLD = 1.0  # Pixel diff sum
 GAP_TOLERANCE_PCT = 0.5    # Allow 50% deviation in frame duration before flagging Gap
 
-def scan_bitstream(input_path):
+def scan_bitstream(input_path, hwaccel="none"):
     """
     2.1 Frame Continuity Scan (Fast)
     Parses FFmpeg stderr for PTS/DTS errors and packet drops.
     """
-    cmd = [
-        "ffmpeg", "-v", "info", "-i", str(input_path), "-f", "null", "-"
-    ]
+    cmd = ["ffmpeg"]
+    if hwaccel != "none":
+        cmd.extend(["-hwaccel", hwaccel])
+    
+    cmd.extend(["-v", "info", "-i", str(input_path), "-f", "null", "-"])
     try:
         process = subprocess.run(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, 
@@ -151,7 +153,7 @@ def scan_visual_integrity(input_path):
 
     return events, duplicate_count, max_drift_ms
 
-def run_validator(input_path, output_path, mode="strict"):
+def run_validator(input_path, output_path, mode="strict", hwaccel="none"):
     report = {
         "module": "validate_frames",
         "status": "PASSED",
@@ -160,7 +162,7 @@ def run_validator(input_path, output_path, mode="strict"):
     }
 
     # 1. Bitstream Scan (PTS/DTS)
-    log_data = scan_bitstream(input_path)
+    log_data = scan_bitstream(input_path, hwaccel)
     bitstream_events = parse_ffmpeg_errors(log_data)
     report["events"].extend(bitstream_events)
 
@@ -189,5 +191,6 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default="strict")
+    parser.add_argument("--hwaccel", default="none")
     args = parser.parse_args()
-    run_validator(args.input, args.output, args.mode)
+    run_validator(args.input, args.output, args.mode, args.hwaccel)

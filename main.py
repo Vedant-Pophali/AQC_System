@@ -37,6 +37,7 @@ VALIDATORS = [
     ("video", "validate_interlace"),
     ("video", "validate_artifacts"),  # ML Engine
     ("video", "validate_geometry"),
+    ("archival", "validate_signal"),  # Blueprint Signal Diagnostics
     # 4. Audio Quality
     ("audio", "validate_loudness"),
     ("audio", "validate_audio_signal"),
@@ -79,7 +80,7 @@ def print_governance_header(mode: str) -> Dict[str, Any]:
     
     return gov
 
-def run_validator_with_retry(category: str, module: str, input_video: Path, outdir: Path, mode: str) -> Dict[str, Any]:
+def run_validator_with_retry(category: str, module: str, input_video: Path, outdir: Path, mode: str, hwaccel: Optional[str] = None) -> Dict[str, Any]:
     """
     Executes a single validator module as a subprocess with retry logic.
     """
@@ -92,6 +93,9 @@ def run_validator_with_retry(category: str, module: str, input_video: Path, outd
         "--output", str(report_path),
         "--mode", mode
     ]
+    
+    if hwaccel and hwaccel != "none":
+        cmd.extend(["--hwaccel", hwaccel])
 
     for attempt in range(1, MAX_RETRIES + 2):
         start = time.time()
@@ -176,6 +180,7 @@ def main():
     parser.add_argument("--outdir", required=True, help="Base directory to save reports")
     parser.add_argument("--mode", choices=["strict", "netflix_hd", "youtube", "ott"], default="strict", help="QC Profile")
     parser.add_argument("--fix", action="store_true", help="Attempt to fix audio loudness errors")
+    parser.add_argument("--hwaccel", default="none", help="Hardware acceleration device (e.g., cuda, vulkan, none)")
 
     args = parser.parse_args()
 
@@ -192,16 +197,20 @@ def main():
 
     # 1. Governance Info
     gov_info = print_governance_header(args.mode)
+    
+    if args.hwaccel != "none":
+        logger.info(f" [ACCEL] Hardware Acceleration Requested: {args.hwaccel}")
 
     results = []
 
-    # 2. EXECUTE MODULES
-    logger.info("--- MODULE EXECUTION ---")
-    
-    # We use sequential execution here to keep log output clean, 
-    # but you can use ThreadPoolExecutor if speed is critical.
+    # Define modules that support the --hwaccel flag
+    HWACCEL_SUPPORTED = ["validate_structure", "validate_frames"]
+
     for category, module in VALIDATORS:
-        res = run_validator_with_retry(category, module, input_video, outdir, args.mode)
+        # Determine if we should pass the acceleration flag
+        use_accel = args.hwaccel if (module in HWACCEL_SUPPORTED) else None
+        
+        res = run_validator_with_retry(category, module, input_video, outdir, args.mode, use_accel)
         results.append(res)
 
     # 3. AGGREGATION
