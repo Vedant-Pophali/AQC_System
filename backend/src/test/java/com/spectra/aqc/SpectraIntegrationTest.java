@@ -55,7 +55,7 @@ class SpectraIntegrationTest {
         mockMvc.perform(multipart("/api/v1/jobs").file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.originalFilename", is("test_vid.mp4")))
-                .andExpect(jsonPath("$.status", is("PENDING"))); // Logic sets it to PENDING initially
+                .andExpect(jsonPath("$.status", is("PROCESSING"))); // Logic transitions to PROCESSING synchronously
 
         // Verify it exists in DB
         assert jobRepository.count() == 1;
