@@ -95,9 +95,13 @@ const Dashboard = () => {
                 const res = await apiClient.get(`/jobs/${activeJobId}`);
                 const job = res.data;
                 if (job.fixStatus === 'COMPLETED') {
-                    addLog(`✅ Remediation Complete! Fixed file available.`);
+                    addLog(`✅ Remediation Complete!`);
+                    addLog(`Downloading Fixed Master: ${job.fixedFilePath.split(/[\\/]/).pop()}`);
                     clearInterval(fixInterval);
-                    alert(`Fixed file available at: ${job.fixedFilePath}`); // Simple alert for now
+
+                    // Trigger Download
+                    window.location.href = `http://localhost:8080/api/v1/jobs/${activeJobId}/fixed-download`;
+
                 } else if (job.fixStatus === 'FAILED') {
                     addLog(`❌ Remediation Failed: ${job.errorMessage}`);
                     clearInterval(fixInterval);
@@ -240,15 +244,15 @@ const Dashboard = () => {
                             <Card className="glass-panel border-0 p-4 shadow-sm fade-in">
                                 <h5 className="mb-3 d-flex align-items-center gap-2">
                                     <span className="badge bg-warning text-dark rounded-circle" style={{ width: 24, height: 24, padding: '4px 0' }}>3</span>
-                                    Auto-Fix Actions
+                                    Correction & Delivery
                                 </h5>
                                 <div className="d-grid gap-2">
-                                    <Button variant="outline-info" onClick={() => handleRemediation("loudness_norm")}>
-                                        🔊 Loudness Normalize (EBU R128)
+                                    <Button variant="outline-success" size="lg" onClick={() => handleRemediation("combined_fix")}>
+                                        ✨ Remediate Audio Loudness & Video Artifacts
                                     </Button>
-                                    <Button variant="outline-warning" onClick={() => handleRemediation("transcode_lossless")}>
-                                        ✨ Fix Compression Artifacts (HQ)
-                                    </Button>
+                                    <small className="text-secondary text-center">
+                                        Applies EBU R128 Norm (-23 LUFS) + HQ Transcode. Auto-downloads to your machine.
+                                    </small>
                                 </div>
                             </Card>
                         )}

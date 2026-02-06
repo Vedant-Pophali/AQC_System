@@ -106,4 +106,30 @@ public class JobController {
         qcService.triggerRemediation(id, fixType);
         return ResponseEntity.accepted().build();
     }
+
+    @GetMapping("/{id}/fixed-download")
+    public ResponseEntity<Resource> downloadFixedVideo(@PathVariable Long id) {
+        try {
+            com.spectra.aqc.model.QualityControlJob job = qcService.getJob(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+            
+            if (job.getFixedFilePath() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            File videoFile = new File(job.getFixedFilePath());
+            if (!videoFile.exists()) {
+                 return ResponseEntity.notFound().build();
+            }
+            
+            Resource resource = new FileSystemResource(videoFile);
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("video/mp4"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + videoFile.getName() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

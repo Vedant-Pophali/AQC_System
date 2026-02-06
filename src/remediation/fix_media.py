@@ -63,11 +63,28 @@ def fix_transcode(input_path, output_path):
     ]
     return run_ffmpeg(cmd, "High-Quality Transcode")
 
+def fix_combined(input_path, output_path):
+    """
+    Apply BOTH Loudness Normalization and High-Quality Transcoding in one pass.
+    Efficiently fixes audio and video issues simultaneously.
+    """
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-af", "loudnorm=I=-23:LRA=7:tp=-1.5",
+        "-c:v", "libx264",
+        "-preset", "slow",
+        "-crf", "18",
+        "-c:a", "aac", "-b:a", "192k",
+        output_path
+    ]
+    return run_ffmpeg(cmd, "Combined Remediation (Loudness + Transcode)")
+
 def main():
     parser = argparse.ArgumentParser(description="AQC Remediation Engine")
     parser.add_argument("--input", required=True, help="Input video file path")
     parser.add_argument("--output", required=True, help="Output fixed video path")
-    parser.add_argument("--fix", required=True, choices=["loudness_norm", "transcode_lossless"], help="Type of fix to apply")
+    parser.add_argument("--fix", required=True, choices=["loudness_norm", "transcode_lossless", "combined_fix"], help="Type of fix to apply")
     
     args = parser.parse_args()
     
@@ -80,6 +97,8 @@ def main():
         success = fix_loudness(input_path, output_path)
     elif args.fix == "transcode_lossless":
         success = fix_transcode(input_path, output_path)
+    elif args.fix == "combined_fix":
+        success = fix_combined(input_path, output_path)
         
     if success:
         print(json.dumps({"status": "SUCCESS", "output_file": output_path}))
