@@ -51,7 +51,7 @@ graph TD
     subgraph "Validation Pipeline (Python)"
         Monolith --> V1[Structure Check]
         Monolith --> V2[Audio Analysis]
-        Monolith --> V3[Video ML (BRISQUE)]
+        Monolith --> V3["Video ML (BRISQUE)"]
         Monolith --> V4[AV Sync]
     end
     
