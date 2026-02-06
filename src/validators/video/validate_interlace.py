@@ -4,11 +4,37 @@ import cv2
 import numpy as np
 from pathlib import Path
 
+# Try to import config, fallback to defaults
+try:
+    from src.utils.logger import setup_logger
+    logger = setup_logger("validate_interlace")
+except ImportError:
+    import logging
+    logger = logging.getLogger("validate_interlace")
+
+def load_profile(mode="strict"):
+    default_profile = {
+        "psnr_threshold": 32.0,
+        "ssim_threshold": 0.90,
+        "temporal_divergence_threshold": 5.0,
+        "min_duration_sec": 0.2
+    }
+    try:
+        config_path = Path(__file__).parent.parent.parent / "config" / "signal_profiles.json"
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                data = json.load(f)
+                profiles = data.get("profiles", {})
+                key = "STRICT"
+                if mode.lower() == "netflix": key = "NETFLIX_HD"
+                if mode.lower() == "youtube": key = "YOUTUBE"
+                if key in profiles:
+                    return profiles[key].get("validate_interlace", default_profile)
+    except Exception:
+        pass
+    return default_profile
+
 def calculate_psnr(img1, img2):
-    """
-    Calculate Peak Signal-to-Noise Ratio between two images.
-    Used here to compare Odd vs Even fields.
-    """
     diff = img1 - img2
     rmse = np.sqrt(np.mean(diff ** 2))
     if rmse == 0:
@@ -17,13 +43,11 @@ def calculate_psnr(img1, img2):
 
 def calculate_ssim_approx(img1, img2):
     """
-    A lightweight Structural Similarity (SSIM) approximation.
-    Full SSIM is too heavy for a quick scanner, so we use Mean/Variance correlation.
+    Mean/Variance correlation suitable for field comparison.
     """
     C1 = 6.5025
     C2 = 58.5225
     
-    # Convert to float
     i1 = img1.astype(np.float64)
     i2 = img2.astype(np.float64)
     
@@ -38,10 +62,7 @@ def calculate_ssim_approx(img1, img2):
     
     return numerator / denominator
 
-def analyze_fields(input_path):
-    """
-    Scans video to calculate interlace metrics and map defects to timecodes.
-    """
+def analyze_fields(input_path, profile):
     cap = cv2.VideoCapture(str(input_path))
     if not cap.isOpened():
         return [], {}
@@ -59,74 +80,69 @@ def analyze_fields(input_path):
     
     events = []
     
-    # Accumulators
     total_psnr = 0.0
     total_ssim = 0.0
     total_temp_div = 0.0
     
     prev_odd_field = None
     
-    # Time mapping state
     in_interlace_seq = False
     seq_start_time = 0.0
     
     frame_idx = 0
     
+    # Thresholds
+    TH_PSNR = profile["psnr_threshold"]
+    TH_SSIM = profile["ssim_threshold"]
+    TH_MOTION = profile["temporal_divergence_threshold"]
+    MIN_DUR = profile["min_duration_sec"]
+
     while True:
         ret, frame = cap.read()
-        if not ret:
-            break
+        if not ret: break
             
-        # Optimization: Analyze every 2nd frame to speed up (Interlace usually affects sequences)
+        # Optimization: Analyze every 2nd frame
         if frame_idx % 2 != 0:
             frame_idx += 1
             continue
 
         current_time = frame_idx / fps
         
-        # 1. Field Separation (Split rows)
-        # Even rows (0, 2, 4...) -> Field 1
-        # Odd rows (1, 3, 5...) -> Field 2
-        # We perform analysis on Grayscale to be fast
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
-        # Slice rows
+        # Field Split
         even_field = gray[0::2, :]
         odd_field = gray[1::2, :]
-        
-        # Ensure sizes match (sometimes odd height images drop the last line)
         min_h = min(even_field.shape[0], odd_field.shape[0])
         even_field = even_field[:min_h, :]
         odd_field = odd_field[:min_h, :]
         
-        # 2. PSNR & SSIM (Spatial comparison between fields)
-        # Low PSNR between fields implies they look very different -> Motion comb artifacts
+        # Metrics
         psnr = calculate_psnr(even_field, odd_field)
         ssim = calculate_ssim_approx(even_field, odd_field)
         
         total_psnr += psnr
         total_ssim += ssim
         
-        # 3. Temporal Divergence (Motion check)
         temp_div = 0.0
         if prev_odd_field is not None:
-            # How much did the Odd field change since last frame?
             temp_div = np.mean(np.abs(odd_field - prev_odd_field))
             total_temp_div += temp_div
         
         prev_odd_field = odd_field.copy()
         
-        # 4. Detect Interlacing Artifacts (The "Comb" check)
-        # Heuristic: If there is significant motion (temp_div > 5) 
-        # AND the fields are very different (PSNR < 30), it's likely combing.
-        # Static scenes (temp_div ~ 0) always have high PSNR, so we ignore them.
+        # ---------------------------------------------------------
+        # ROBUST INTERLACE DETECTION LOGIC
+        # We need significant motion (temp_div) AND (low PSNR OR low SSIM)
+        # SSIM is often better at catching fine comb artifacts
+        # ---------------------------------------------------------
         is_interlaced_frame = False
         
-        if temp_div > 5.0 and psnr < 32.0:
-            is_interlaced_frame = True
-            metrics["interlaced_frame_count"] += 1
+        if temp_div > TH_MOTION:
+            if psnr < TH_PSNR or ssim < TH_SSIM:
+                is_interlaced_frame = True
+                metrics["interlaced_frame_count"] += 1
             
-        # 5. Time-Range Mapping
         if is_interlaced_frame:
             if not in_interlace_seq:
                 in_interlace_seq = True
@@ -135,25 +151,22 @@ def analyze_fields(input_path):
             if in_interlace_seq:
                 in_interlace_seq = False
                 duration = current_time - seq_start_time
-                # Only log if it persists for > 0.2s (5 frames)
-                if duration > 0.2:
+                if duration > MIN_DUR:
                     events.append({
                         "type": "interlace_artifact",
-                        "details": f"Combing artifacts detected ({duration:.2f}s)",
+                        "details": f"Combing artifacts detected ({duration:.2f}s). PSNR:{psnr:.1f} SSIM:{ssim:.2f}",
                         "start_time": round(seq_start_time, 2),
                         "end_time": round(current_time, 2)
                     })
-
+ 
         metrics["scanned_frames"] += 1
         frame_idx += 1
         
         # Safety limit for very long videos (check first 2 minutes)
-        if frame_idx > (fps * 120): 
-            break
+        if frame_idx > (fps * 120): break
 
     cap.release()
     
-    # Close pending sequence
     if in_interlace_seq:
         events.append({
             "type": "interlace_artifact",
@@ -162,7 +175,6 @@ def analyze_fields(input_path):
             "end_time": round(current_time, 2)
         })
 
-    # Average Metrics
     count = metrics["scanned_frames"]
     if count > 0:
         metrics["avg_field_psnr"] = round(total_psnr / count, 2)
@@ -172,18 +184,16 @@ def analyze_fields(input_path):
     return events, metrics
 
 def run_validator(input_path, output_path, mode="strict"):
-    events, metrics = analyze_fields(input_path)
+    profile = load_profile(mode)
+    events, metrics = analyze_fields(input_path, profile)
     
     status = "PASSED"
-    
-    # Logic: If we found distinct interlace sequences, or the global field PSNR is consistently low
     if events:
         status = "REJECTED" if mode == "strict" else "WARNING"
         
-    # Secondary check: Global metrics
-    # If Avg PSNR is very low (< 35) on a long file, the whole thing might be interlaced encoding
-    if metrics["avg_field_psnr"] > 0 and metrics["avg_field_psnr"] < 35.0:
-        if not events: # If we didn't catch specific ranges but stats are bad
+    # Global check via avg PSNR
+    if metrics["avg_field_psnr"] > 0 and metrics["avg_field_psnr"] < (profile["psnr_threshold"] + 3):
+        if not events:
             status = "WARNING"
             events.append({
                 "type": "global_interlace_warning",
