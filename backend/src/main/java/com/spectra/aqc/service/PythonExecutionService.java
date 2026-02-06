@@ -48,6 +48,9 @@ public class PythonExecutionService {
     @Value("${app.aqc.spark.cores:4}")
     private String sparkCores;
 
+    @Value("${app.aqc.spark.segment-duration:60}")
+    private String sparkSegmentDuration;
+
     public CompletableFuture<String> runAnalysis(Long jobId, String inputFilePath, String profile) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -97,6 +100,8 @@ public class PythonExecutionService {
                     command.add(sparkExecutorMemory);
                     command.add("--spark_cores");
                     command.add(sparkCores);
+                    command.add("--segments");
+                    command.add(sparkSegmentDuration);
                 } else {
                     // HW Accel is generally for Monolith/Local FFmpeg
                     command.add("--hwaccel");

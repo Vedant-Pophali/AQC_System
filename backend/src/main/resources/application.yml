@@ -51,7 +51,13 @@ app:
   aqc:
     script-path: ../main.py
     spark-script-path: ../main_spark.py
-    engine: MONOLITH # Options: MONOLITH, SPARK
+    engine: SPARK # Options: MONOLITH, SPARK
     hwaccel:
       enabled: false
       device: cuda # Options: cuda, vulkan, qsv, dxva2
+    spark:
+      master: local[*]
+      driver-memory: 2g
+      executor-memory: 2g
+      cores: 4
+      segment-duration: 300 # 5 Minutes
