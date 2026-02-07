@@ -51,7 +51,7 @@ app:
   aqc:
     script-path: ../main.py
     spark-script-path: ../main_spark.py
-    engine: SPARK # Options: MONOLITH, SPARK
+    engine: MONOLITH # Options: MONOLITH, SPARK
     hwaccel:
       enabled: false
       device: cuda # Options: cuda, vulkan, qsv, dxva2

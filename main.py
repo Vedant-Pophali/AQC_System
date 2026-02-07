@@ -6,6 +6,7 @@ import time
 import sys
 import shutil
 import webbrowser
+import traceback
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Any
@@ -274,4 +275,9 @@ def main():
             pass
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        sys.stderr.write("CRITICAL ERROR IN MAIN.PY:\n")
+        traceback.print_exc()
+        sys.exit(1)

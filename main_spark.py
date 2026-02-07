@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import time
+import traceback
 from pathlib import Path
 from pyspark.sql import SparkSession
 
@@ -27,6 +28,44 @@ VALIDATORS = [
     ("audio", "validate_phase"),
     ("video", "validate_avsync"),
 ]
+
+def setup_windows_environment(project_root: Path):
+    """
+    Configures Hadoop environment checks for Windows Spark execution.
+    """
+    if os.name != 'nt':
+        return
+
+    # 1. Check/Set HADOOP_HOME
+    hadoop_home = os.environ.get('HADOOP_HOME')
+    local_hadoop = project_root / "hadoop"
+    
+    if not hadoop_home:
+        logger.info(f"HADOOP_HOME not set. Defaulting to local project path: {local_hadoop}")
+        os.environ['HADOOP_HOME'] = str(local_hadoop)
+        hadoop_home = str(local_hadoop)
+    
+    # 2. Check for winutils.exe
+    bin_dir = Path(hadoop_home) / "bin"
+    winutils_path = bin_dir / "winutils.exe"
+    
+    if not winutils_path.exists():
+        logger.critical("="*60)
+        logger.critical("MISSING DEPENDENCY: winutils.exe")
+        logger.critical("="*60)
+        logger.critical(f"Spark on Windows requires 'winutils.exe' to function.")
+        logger.critical(f"Please download a compatible version (e.g. Hadoop 3.3.0) and place it here:")
+        logger.critical(f"  -> {winutils_path}")
+        logger.critical("="*60)
+        # We don't exit here, we let Spark crash with a clearer error, 
+        # or we could try to proceed if the user wants to risk it (unlikely to work).
+        # We will exit to prevent the confusing stack trace.
+        sys.exit(1)
+        
+    # 3. Add to PATH if needed
+    current_path = os.environ.get('PATH', '')
+    if str(bin_dir) not in current_path:
+        os.environ['PATH'] = str(bin_dir) + os.pathsep + current_path
 
 # 1. Setup Spark Environment
 os.environ["PYSPARK_PYTHON"] = sys.executable
@@ -68,6 +107,9 @@ def main():
     input_video = Path(args.input).resolve()
     base_outdir = Path(args.outdir).resolve()
     project_root = Path(__file__).parent.resolve()
+
+    # 0. Setup Windows Env
+    setup_windows_environment(project_root)
 
     # 1. Package Dependencies
     src_dir = project_root / "src"
@@ -148,4 +190,9 @@ def main():
     spark.stop()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        sys.stderr.write("CRITICAL ERROR IN MAIN_SPARK.PY:\n")
+        traceback.print_exc()
+        sys.exit(1)

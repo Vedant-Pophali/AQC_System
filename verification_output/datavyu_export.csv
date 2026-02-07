@@ -1,0 +1,154 @@
+onset,offset,code01,code02,comment
+0,1130,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.13s).
+0,0,AUD,HIGH,Loudness Violation: Integrated Loudness -28.1 LUFS is outside target -23.0 +/- 1.0.
+0,0,STR,UNKNOWN,Missing Metadata: Video track missing language tag. | Audio track missing language tag.
+41,208,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.17s
+1000,5000,VQUAL,SEVERE,Compression Artifact Ml: ML detected SEVERE artifacts (Avg Score: 60.6)
+1270,1410,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s).
+11000,23000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 50.8)
+20790,20970,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.18s).
+22270,22940,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.67s).
+29000,34000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 42.8)
+43540,44800,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.96s). | Audio Silence detected (0.30s).
+46960,47160,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.20s).
+47370,47570,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.20s).
+48000,50000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 44.1)
+49360,49690,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.33s).
+52780,52920,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s).
+53000,63000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 45.6)
+53220,55470,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.36s). | Audio Silence detected (0.60s). | Audio Silence detected (0.19s).
+56583,56666,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+67000,71000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 38.5)
+74000,89000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 45.6)
+84480,90630,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (2.52s). | Audio Silence detected (2.96s). | Audio Silence detected (0.34s). | Audio Silence detected (0.30s).
+90870,92820,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.43s). | Audio Silence detected (1.50s).
+92000,99000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 41.7)
+93380,93860,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.48s).
+93791,94041,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s | Content frozen for 0.12s
+94040,94170,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.13s).
+94450,95540,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.37s). | Audio Silence detected (0.63s).
+97640,98080,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s). | Audio Silence detected (0.16s).
+104000,118000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 50.0)
+105710,105820,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+106150,106510,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.36s).
+120460,120570,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+121000,124000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 47.0)
+121400,123240,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.65s). | Audio Silence detected (1.15s).
+126120,126260,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s).
+127000,129000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 41.2)
+130570,131150,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.58s).
+131720,131940,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s).
+132790,133010,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s).
+134650,137420,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (2.39s). | Audio Silence detected (0.33s).
+138170,138520,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.35s).
+138790,138900,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+140750,143580,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.83s). | Audio Silence detected (0.40s). | Audio Silence detected (0.33s). | Audio Silence detected (0.17s).
+144000,149000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 44.9)
+148916,149041,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+150760,151490,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.73s).
+152560,152690,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.13s).
+152930,153050,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.12s).
+153450,155530,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.16s). | Audio Silence detected (0.95s). | Audio Silence detected (0.13s). | Audio Silence detected (0.73s).
+155670,156390,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.52s). | Audio Silence detected (0.17s).
+156291,156375,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+157000,245000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 47.0)
+158950,159810,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.42s). | Audio Silence detected (0.37s).
+160220,160650,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.43s).
+161230,161350,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.12s).
+162260,163410,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.15s).
+163530,163750,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s).
+163870,164070,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.20s).
+164210,164490,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.16s). | Audio Silence detected (0.10s).
+164600,165130,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.53s).
+165280,166440,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.16s).
+166710,166840,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.13s).
+166950,167060,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+171260,172840,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.58s).
+173510,173650,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s).
+174230,174640,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.26s). | Audio Silence detected (0.14s).
+174890,175260,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.37s).
+185900,186260,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.36s).
+190708,190791,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+201160,201350,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.19s).
+201640,201820,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.18s).
+203360,203700,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.13s). | Audio Silence detected (0.20s).
+217230,217900,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.67s).
+221180,221980,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s). | Audio Silence detected (0.13s). | Audio Silence detected (0.11s).
+221791,222041,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+222140,222570,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.43s).
+222291,222375,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+222630,222800,AUD,CRITICAL,Phase Inversion Detected: Phase Cancellation detected (0.17s). L+R Sum resulted in silence.
+223583,223750,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.17s
+230240,230450,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.21s).
+231180,231430,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.25s).
+231580,231860,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.28s).
+232190,232310,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.12s).
+232660,232960,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s). | Audio Silence detected (0.15s).
+234300,234470,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.17s).
+248000,254000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 43.0)
+256000,260000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 48.8)
+262000,268000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 46.2)
+271000,299000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 49.3)
+274420,274660,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.24s).
+281291,281416,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+285791,285916,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+286375,286500,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+287166,287250,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+290750,291000,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s | Content frozen for 0.08s
+298870,300970,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.98s). | Audio Silence detected (0.10s).
+299625,300291,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.67s
+301000,302000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 48.6)
+305070,305170,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.10s).
+305680,305820,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s).
+306000,330000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 44.6)
+314570,318200,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.17s). | Audio Silence detected (0.11s). | Audio Silence detected (0.12s). | Audio Silence detected (0.15s). | Audio Silence detected (0.14s). | Audio Silence detected (0.32s). | Audio Silence detected (0.37s). | Audio Silence detected (0.55s). | Audio Silence detected (0.22s). | Audio Silence detected (0.44s). | Audio Silence detected (0.66s).
+319500,320030,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.53s).
+320270,321070,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.80s).
+322480,322580,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.10s).
+322958,323083,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+323490,323650,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.16s).
+325240,325440,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.20s).
+332000,362000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 46.7)
+337790,340920,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.65s). | Audio Silence detected (2.25s). | Audio Silence detected (0.17s).
+338916,339041,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+339291,339625,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s | Content frozen for 0.17s
+343810,345080,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.14s). | Audio Silence detected (1.09s).
+345260,346170,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.15s). | Audio Silence detected (0.41s). | Audio Silence detected (0.24s).
+354470,355740,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s). | Audio Silence detected (1.05s).
+358430,358900,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.47s).
+361700,363110,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.44s). | Audio Silence detected (0.10s). | Audio Silence detected (0.14s). | Audio Silence detected (0.16s). | Audio Silence detected (0.11s).
+363970,372070,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (8.10s).
+365000,369000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 38.1)
+372000,373000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 40.8)
+372720,372830,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+374640,375210,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.26s). | Audio Silence detected (0.25s).
+375000,392000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 43.6)
+375041,375166,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+375340,375500,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.16s).
+376290,376590,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.30s).
+378630,378740,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.11s).
+378920,379200,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.28s).
+386291,386375,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+386700,388000,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.30s).
+388110,388410,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.30s).
+389120,389870,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.75s).
+390800,390950,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.15s).
+395000,404000,VQUAL,SEVERE,Compression Artifact Ml: ML detected SEVERE artifacts (Avg Score: 63.0)
+405041,405166,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s
+409000,447000,VQUAL,MODERATE,Compression Artifact Ml: ML detected MODERATE artifacts (Avg Score: 52.4)
+447270,447400,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.13s).
+448450,450190,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (1.62s). | Audio Silence detected (0.10s).
+450470,450940,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.22s). | Audio Silence detected (0.20s).
+451230,451570,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.34s).
+451770,452230,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.18s). | Audio Silence detected (0.28s).
+452000,454000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 42.5)
+452540,456910,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (0.50s). | Audio Silence detected (3.87s).
+458120,462530,AUD,UNKNOWN,Audio Dropout: Audio Silence detected (4.41s).
+459000,460000,VQUAL,MILD,Compression Artifact Ml: ML detected MILD artifacts (Avg Score: 42.4)
+461000,461916,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.12s | Content frozen for 0.75s
+462000,489000,VQUAL,SEVERE,Compression Artifact Ml: ML detected SEVERE artifacts (Avg Score: 51.7)
+491000,596000,VQUAL,SEVERE,Compression Artifact Ml: ML detected SEVERE artifacts (Avg Score: 68.6)
+493500,493833,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.33s
+578916,579000,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.08s
+579250,579708,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.46s
+580166,580958,VERR,UNKNOWN,Freeze Frame: Content frozen for 0.79s

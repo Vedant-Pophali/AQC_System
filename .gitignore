@@ -108,3 +108,31 @@ final_verification*/
 # --- MISC ---
 package_for_boss.py
 .gemini/
+
+# --- NEWLY IDENTIFIED GARBAGE ---
+# Build & Runtime Logs
+build_log.txt
+mvn_test_error_log.txt
+videos.txt
+
+# Temporary Test & Benchmark Outputs (previously identified in cleanup)
+archival_test/
+archival_test_*/
+benchmark_*/
+viz_test/
+colab_verification.ipynb
+
+# --- USER REQUESTED EXCLUSIONS ---
+# Databases
+*.db
+backend/data/*.db
+
+# Models
+src/models/brisque/*.yml
+
+# Local Scripts
+*.bat
+backend/run_backend.bat
+
+# Reports
+*qc_report/
