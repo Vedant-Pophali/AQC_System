@@ -70,7 +70,8 @@ const Dashboard = () => {
         try {
             addLog("Uploading media to secure storage...");
             const response = await apiClient.post('/jobs', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 0 // No timeout (important for large files)
             });
             const job = response.data;
             setActiveJobId(job.id);
