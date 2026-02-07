@@ -34,9 +34,10 @@ public class JobQueueController {
     @PostMapping("/{id}/complete")
     public ResponseEntity<Void> completeJob(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String reportJson = payload.get("reportJson");
+        String reportHtml = payload.get("reportHtml");
         String errorMessage = payload.get("error");
         
-        qcService.completeJobRemote(id, reportJson, errorMessage);
+        qcService.completeJobRemote(id, reportJson, reportHtml, errorMessage);
         return ResponseEntity.ok().build();
     }
 }

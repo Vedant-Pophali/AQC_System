@@ -46,6 +46,14 @@ def report_success(job_id, report_path):
             report_content = f.read()
         
         payload = {"reportJson": report_content}
+
+        # Try to read HTML Dashboard
+        dashboard_path = Path(report_path).parent / "dashboard.html"
+        if dashboard_path.exists():
+             with open(dashboard_path, 'r', encoding='utf-8') as f:
+                payload["reportHtml"] = f.read()
+             print(f"Found and attaching dashboard.html")
+        
         requests.post(f"{BACKEND_URL}/api/v1/queue/{job_id}/complete", json=payload)
         print(f"Report uploaded for Job {job_id}")
     except Exception as e:

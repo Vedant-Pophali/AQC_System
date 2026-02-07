@@ -190,7 +190,7 @@ public class QualityControlService {
         return jobRepository.save(job);
     }
 
-    public void completeJobRemote(Long id, String reportJsonContent, String errorMessage) {
+    public void completeJobRemote(Long id, String reportJsonContent, String reportHtmlContent, String errorMessage) {
         QualityControlJob job = jobRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
         
@@ -203,12 +203,6 @@ public class QualityControlService {
             try {
                 // Ensure directory exists
                 java.nio.file.Path existingPath = java.nio.file.Path.of(job.getFilePath());
-                // The output dir should be job_ID_timestamp. 
-                // We recreate the structure expected by getJobReport
-                // For simplified remote flow, we might just save it next to the video 
-                // or create a folder based on ID.
-                // Let's create a folder "job_{id}_remote_result" in upload dir
-                
                 String timestamp = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
                 java.nio.file.Path uploadDir = existingPath.getParent();
                 java.nio.file.Path resultDir = uploadDir.resolve("job_" + id + "_remote_" + timestamp);
@@ -216,6 +210,12 @@ public class QualityControlService {
                 
                 java.nio.file.Path reportPath = resultDir.resolve("Master_Report.json");
                 java.nio.file.Files.writeString(reportPath, reportJsonContent);
+
+                // Save HTML Dashboard if provided
+                if (reportHtmlContent != null && !reportHtmlContent.isEmpty()) {
+                    java.nio.file.Path visualPath = resultDir.resolve("dashboard.html");
+                    java.nio.file.Files.writeString(visualPath, reportHtmlContent);
+                }
                 
                 job.setResultJsonPath(reportPath.toAbsolutePath().toString());
                 job.setStatus(QualityControlJob.JobStatus.COMPLETED);
