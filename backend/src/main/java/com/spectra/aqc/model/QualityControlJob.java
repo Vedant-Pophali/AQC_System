@@ -44,6 +44,7 @@ public class QualityControlJob {
 
     public enum JobStatus {
         PENDING,
+        QUEUED,
         PROCESSING,
         COMPLETED,
         FAILED

@@ -51,9 +51,33 @@ public class PythonExecutionService {
     @Value("${app.aqc.spark.segment-duration:60}")
     private String sparkSegmentDuration;
 
+    @Value("${app.aqc.execution-mode:LOCAL}")
+    private String executionMode;
+
     public CompletableFuture<String> runAnalysis(Long jobId, String inputFilePath, String profile) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                // If REMOTE mode, we don't run the script locally.
+                // We return a placeholder or specific signal that the job is QUEUED.
+                if ("REMOTE".equalsIgnoreCase(executionMode)) {
+                    logger.info("Job " + jobId + " queued for REMOTE execution. Waiting for worker to pick it up.");
+                    // In REMOTE mode, we might not have a report yet.
+                    // The QualityControlService needs to know this isn't a failure, 
+                    // but it also isn't an immediate success with a report path.
+                    // We'll return a special string or throw a specific 'Queued' exception if needed,
+                    // but for now let's return null to signal "Async Pending" if the caller handles it,
+                    // OR we can't return a report path yet.
+                    
+                    // ACTUALLY: The caller (QualityControlService) expects a report path upon completion of this future.
+                    // But for REMOTE, this future shouldn't complete until the remote worker executes it.
+                    // Since we can't keep a thread blocked for hours waiting for Colab, 
+                    // we should probably change the architecture slightly:
+                    // 1. This method returns immediately for REMOTE.
+                    // 2. We throw a specific exception "JobQueuedException" that the caller catches 
+                    //    and sets status to PENDING (or QUEUED) instead of FAILED.
+                    throw new JobQueuedException("Job " + jobId + " is queued for remote execution.");
+                }
+
                 File scriptFile = new File(scriptPath).getCanonicalFile();
                 File sparkScriptFile = new File(sparkScriptPath).getCanonicalFile();
 
@@ -136,10 +160,16 @@ public class PythonExecutionService {
                     return reportPath.toAbsolutePath().toString();
                 }
 
+            } catch (JobQueuedException e) {
+                 throw e; 
             } catch (Exception e) {
                 throw new RuntimeException("Analysis failed: " + e.getMessage(), e);
             }
         });
+    }
+
+    public static class JobQueuedException extends RuntimeException {
+        public JobQueuedException(String message) { super(message); }
     }
     public CompletableFuture<String> runRemediation(Long jobId, String inputFilePath, String fixType) {
         return CompletableFuture.supplyAsync(() -> {

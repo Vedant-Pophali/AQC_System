@@ -48,9 +48,18 @@ public class QualityControlService {
                 jobRepository.save(job);
             })
             .exceptionally(ex -> {
-                job.setStatus(QualityControlJob.JobStatus.FAILED);
-                job.setErrorMessage(ex.getMessage());
-                job.setCompletedAt(LocalDateTime.now());
+                // Unwrap ExecutionException if present
+                Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+
+                if (cause instanceof com.spectra.aqc.service.PythonExecutionService.JobQueuedException) {
+                    job.setStatus(QualityControlJob.JobStatus.QUEUED);
+                    job.setErrorMessage(null); // Clear any previous error
+                    // We don't set completedAt because it's not done
+                } else {
+                    job.setStatus(QualityControlJob.JobStatus.FAILED);
+                    job.setErrorMessage(cause.getMessage());
+                    job.setCompletedAt(LocalDateTime.now());
+                }
                 jobRepository.save(job);
                 return null;
             });
@@ -161,5 +170,63 @@ public class QualityControlService {
                 jobRepository.save(job);
                 return null;
             });
+    }
+
+    // --- Remote Worker Methods ---
+
+    public List<QualityControlJob> getQueuedJobs() {
+        return jobRepository.findByStatus(QualityControlJob.JobStatus.QUEUED);
+    }
+
+    public synchronized QualityControlJob claimJob(Long id) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        if (job.getStatus() != QualityControlJob.JobStatus.QUEUED) {
+             throw new RuntimeException("Job is not in QUEUED state (Current: " + job.getStatus() + ")");
+        }
+        
+        job.setStatus(QualityControlJob.JobStatus.PROCESSING);
+        return jobRepository.save(job);
+    }
+
+    public void completeJobRemote(Long id, String reportJsonContent, String errorMessage) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            job.setStatus(QualityControlJob.JobStatus.FAILED);
+            job.setErrorMessage(errorMessage);
+            job.setCompletedAt(LocalDateTime.now());
+        } else {
+            // Write JSON to file
+            try {
+                // Ensure directory exists
+                java.nio.file.Path existingPath = java.nio.file.Path.of(job.getFilePath());
+                // The output dir should be job_ID_timestamp. 
+                // We recreate the structure expected by getJobReport
+                // For simplified remote flow, we might just save it next to the video 
+                // or create a folder based on ID.
+                // Let's create a folder "job_{id}_remote_result" in upload dir
+                
+                String timestamp = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+                java.nio.file.Path uploadDir = existingPath.getParent();
+                java.nio.file.Path resultDir = uploadDir.resolve("job_" + id + "_remote_" + timestamp);
+                java.nio.file.Files.createDirectories(resultDir);
+                
+                java.nio.file.Path reportPath = resultDir.resolve("Master_Report.json");
+                java.nio.file.Files.writeString(reportPath, reportJsonContent);
+                
+                job.setResultJsonPath(reportPath.toAbsolutePath().toString());
+                job.setStatus(QualityControlJob.JobStatus.COMPLETED);
+                job.setCompletedAt(LocalDateTime.now());
+                
+            } catch (Exception e) {
+                job.setStatus(QualityControlJob.JobStatus.FAILED);
+                job.setErrorMessage("Failed to save remote report: " + e.getMessage());
+                job.setCompletedAt(LocalDateTime.now());
+            }
+        }
+        jobRepository.save(job);
     }
 }

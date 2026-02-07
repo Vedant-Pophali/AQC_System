@@ -100,7 +100,7 @@ const Dashboard = () => {
                     clearInterval(fixInterval);
 
                     // Trigger Download
-                    window.location.href = `http://localhost:8080/api/v1/jobs/${activeJobId}/fixed-download`;
+                    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/jobs/${activeJobId}/fixed-download`;
 
                 } else if (job.fixStatus === 'FAILED') {
                     addLog(`❌ Remediation Failed: ${job.errorMessage}`);
@@ -229,7 +229,7 @@ const Dashboard = () => {
                                             <Button
                                                 variant="success"
                                                 className="w-100 mt-2 py-2 fw-bold shadow-sm"
-                                                onClick={() => window.open(`http://localhost:8080/api/v1/jobs/${activeJobId}/visual`, '_blank')}
+                                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/jobs/${activeJobId}/visual`, '_blank')}
                                             >
                                                 <MdCheckCircle className="me-2" size={20} />
                                                 View Full QC Report

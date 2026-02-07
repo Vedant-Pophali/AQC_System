@@ -10,4 +10,6 @@ import java.util.Optional;
 @Repository
 public interface JobRepository extends JpaRepository<QualityControlJob, Long> {
     List<QualityControlJob> findAllByOrderByCreatedAtDesc();
+    
+    List<QualityControlJob> findByStatus(QualityControlJob.JobStatus status);
 }
