@@ -267,8 +267,8 @@ def create_interactive_dashboard(report_path, output_path):
                     <h1 style="margin:0">AQC Analysis Report</h1>
                     <h3 style="margin:5px 0; color: #aaa;">File: {input_filename}</h3>
                 </div>
-                <div class="status-badge {data.get('overall_status', 'UNKNOWN')}">
-                    {data.get('overall_status', 'UNKNOWN')}
+                <div class="status-badge {data.get('status', data.get('overall_status', 'UNKNOWN'))}">
+                    {data.get('status', data.get('overall_status', 'UNKNOWN'))}
                 </div>
             </div>
 
