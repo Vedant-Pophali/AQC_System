@@ -136,3 +136,12 @@ backend/run_backend.bat
 
 # Reports
 *qc_report/
+
+# --- BINARIES & ENVIRONMENT ---
+hadoop/
+repro_output*
+verification_output/
+*.log
+frontend_debug.log
+spark_debug.log
+test_cv2.py
