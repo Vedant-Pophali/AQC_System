@@ -79,7 +79,6 @@ const Dashboard = () => {
             addLog("Handing off to ML Core engine...");
             pollJobStatus(job.id);
         } catch (err) {
-        } catch (err) {
             console.error(err);
             const errMsg = err.response?.data?.error || err.message || "Unknown Upload Error";
             addLog(`Fatal: Upload failed (${errMsg}). Process terminated.`);
