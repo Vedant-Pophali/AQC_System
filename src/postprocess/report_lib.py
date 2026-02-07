@@ -73,20 +73,26 @@ class ReportStandardizer:
         events = []
         modules = data.get("modules", {})
         for mod_name, mod_data in modules.items():
-            if "events" in mod_data:
-                for evt in mod_data["events"]:
-                    # Create a copy to not mutate original
-                    e = evt.copy() 
-                    e["origin_module"] = mod_name
-                    # Normalize time
-                    if "start_time" not in e:
-                        e["start_time"] = e.get("timestamp", 0.0)
-                        # Some incomplete events might lack end_time
-                    if "end_time" not in e:
-                         # Default to 1 sec duration if missing
-                        e["end_time"] = e["start_time"] + 1.0  
-                    
-                    events.append(e)
+            # Source 1: Direct events list
+            raw_events = mod_data.get("events", [])
+            
+            # Source 2: Nested in details (Common in Spark Aggregator)
+            if "details" in mod_data and isinstance(mod_data["details"], dict):
+                raw_events.extend(mod_data["details"].get("events", []))
+
+            for evt in raw_events:
+                # Create a copy to not mutate original
+                e = evt.copy() 
+                e["origin_module"] = mod_name
+                # Normalize time
+                if "start_time" not in e:
+                    e["start_time"] = e.get("timestamp", 0.0)
+                # Some incomplete events might lack end_time
+                if "end_time" not in e:
+                        # Default to 1 sec duration if missing
+                    e["end_time"] = e["start_time"] + 1.0  
+                
+                events.append(e)
         
         data["aggregated_events"] = events
         return data
