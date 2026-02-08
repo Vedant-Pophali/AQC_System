@@ -141,12 +141,14 @@ def run_validator(input_path: str, output_path: str, mode: str = "strict") -> No
     report = {
         "module": "validate_loudness",
         "status": result["status"],
-        "metrics": {
-            "integrated_lufs": result["integrated_lufs"],
-            "lra": result["lra"],
-            "true_peak": result["true_peak"]
-        },
-        "events": result["events"]
+        "details": {
+            "metrics": {
+                "integrated_lufs": result["integrated_lufs"],
+                "lra": result["lra"],
+                "true_peak": result["true_peak"]
+            },
+            "events": result["events"]
+        }
     }
     
     # Calculate effective status (PASSED/WARNING/REJECTED)

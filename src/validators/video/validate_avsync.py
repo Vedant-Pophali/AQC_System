@@ -152,6 +152,16 @@ class AVSyncValidator:
             notes.append(f"Drift of {drift_ms:.2f}ms detected")
 
         # 4. Report
+        events = []
+        if status != "PASSED":
+            events.append({
+                "type": "av_sync_error",
+                "details": f"A/V Sync Offset: {max_offset:.2f}ms (Limit: {SYNC_TOLERANCE_MS}ms)",
+                "start_time": 0.0,
+                "end_time": duration if duration > 0 else 0.1, # Mark whole file as bad for sync
+                "severity": "REJECTED" if status == "REJECTED" else "WARNING"
+            })
+
         self.report["status"] = status
         self.report["effective_status"] = status
         self.report["details"] = {
@@ -161,7 +171,8 @@ class AVSyncValidator:
             "drift_ms": round(drift_ms, 2),
             "tolerance_ms": SYNC_TOLERANCE_MS,
             "confidence_score": round(float(conf_head), 2),
-            "analysis_note": "; ".join(notes) if notes else "Sync OK"
+            "analysis_note": "; ".join(notes) if notes else "Sync OK",
+            "events": events
         }
 
         self._save()
