@@ -93,14 +93,21 @@ def main():
             # Handle potential segment offsets (for future scalability)
             segment_offset = data.get("segment_offset_sec", 0.0)
             
+            raw_events = []
             if "events" in data and isinstance(data["events"], list):
-                for e in data["events"]:
-                    # Normalize timestamps
-                    if "start_time" in e: e["start_time"] += segment_offset
-                    if "end_time" in e: e["end_time"] += segment_offset
-                    
-                    e["source_module"] = module_name
-                    all_raw_events.append(e)
+                raw_events.extend(data["events"])
+            
+            if "details" in data and isinstance(data["details"], dict):
+                if "events" in data["details"] and isinstance(data["details"]["events"], list):
+                    raw_events.extend(data["details"]["events"])
+
+            for e in raw_events:
+                # Normalize timestamps
+                if "start_time" in e: e["start_time"] += segment_offset
+                if "end_time" in e: e["end_time"] += segment_offset
+                
+                e["source_module"] = module_name
+                all_raw_events.append(e)
                 
         except Exception as e:
             print(f"[WARN] Failed to parse {path}: {e}")
