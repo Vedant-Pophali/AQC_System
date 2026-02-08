@@ -105,6 +105,91 @@ class MasterAggregator:
         if "WARNING" in statuses: return "WARNING"
         return "PASSED"
 
+    def _stitch_events(self, events, tolerance=0.1):
+        """
+        Merges overlapping or adjacent events of the same type.
+        """
+        if not events: return []
+        
+        # Sort by Type, then Start Time
+        sorted_events = sorted(events, key=lambda x: (x.get("type", "unknown"), x.get("start_time", 0)))
+        
+        stitched = []
+        if not sorted_events: return []
+        
+        current = sorted_events[0]
+        
+        for next_evt in sorted_events[1:]:
+            # Check if same type
+            if current.get("type") == next_evt.get("type"):
+                # Check overlap or adjacency
+                curr_end = current.get("end_time", 0)
+                next_start = next_evt.get("start_time", 0)
+                
+                if next_start <= (curr_end + tolerance):
+                    # Merge: Extend current end time
+                    current["end_time"] = max(curr_end, next_evt.get("end_time", 0))
+                    # Append details if unique
+                    if next_evt.get("details") not in current.get("details", ""):
+                        current["details"] += f" | {next_evt.get('details')}"
+                    continue
+            
+            # No merge, push current and move on
+            stitched.append(current)
+            current = next_evt
+        
+        stitched.append(current)
+        return sorted(stitched, key=lambda x: x.get("start_time", 0))
+
+    def aggregate(self):
+        # ... (Existing aggregation logic)
+        for segment in self.segments_results:
+            offset_sec = segment['start_time']
+            for report in segment['reports']:
+                module_name = report.get('module', 'unknown')
+                if module_name not in self.master_report['modules']:
+                    self.master_report['modules'][module_name] = {
+                        "status": "PASSED",
+                        "details": {}
+                    }
+                
+                module_master = self.master_report['modules'][module_name]
+                
+                # Update Status
+                status = report.get('effective_status', report.get('status', 'PASSED'))
+                if status == "REJECTED":
+                    module_master["status"] = "REJECTED"
+                elif status == "WARNING" and module_master["status"] != "REJECTED":
+                    module_master["status"] = "WARNING"
+                
+                # Merge Details with Offsets
+                details = report.get('details', {})
+                self._merge_details(module_name, module_master['details'], details, offset_sec)
+
+        # Final Master Status
+        self.master_report["status"] = self._calculate_overall_status()
+        
+        # --- NEW: Generate Aggregated Events for Dashboard ---
+        all_raw_events = []
+        for module_name, module_data in self.master_report['modules'].items():
+            # Get events from details (preferred) or top-level (legacy)
+            details = module_data.get("details", {})
+            events = details.get("events", [])
+            
+            # If not in details, check top-level (though _merge_details puts them in details usually)
+            if not events:
+                events = module_data.get("events", [])
+
+            for e in events:
+                # Add source module if missing
+                if "source_module" not in e:
+                    e["source_module"] = module_name
+                all_raw_events.append(e)
+
+        self.master_report["aggregated_events"] = self._stitch_events(all_raw_events)
+        
+        return self.master_report
+
     def save(self, output_path):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(self.master_report, f, indent=4)
