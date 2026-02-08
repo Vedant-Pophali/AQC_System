@@ -73,6 +73,11 @@ class MasterAggregator:
                             new_item['start_sec'] = round(new_item['start_sec'] + offset_sec, 3)
                         if 'end_sec' in new_item:
                             new_item['end_sec'] = round(new_item['end_sec'] + offset_sec, 3)
+                        # Support for new validator keys
+                        if 'start_time' in new_item:
+                            new_item['start_time'] = round(new_item['start_time'] + offset_sec, 3)
+                        if 'end_time' in new_item:
+                            new_item['end_time'] = round(new_item['end_time'] + offset_sec, 3)
                         adjusted_list.append(new_item)
                     else:
                         adjusted_list.append(item)
