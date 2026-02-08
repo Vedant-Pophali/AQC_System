@@ -176,7 +176,7 @@ def validate_signal(input_path, output_path, config=None, mode="strict"):
         report["details"]["broadcast_illegal_frames"] = illegal_count
         report["details"]["saturation_warnings"] = sat_warn_count
         report["details"]["total_frames"] = len(frames)
-        report["events"] = events
+        report["details"]["events"] = events
 
         # Final Status determination
         if events:

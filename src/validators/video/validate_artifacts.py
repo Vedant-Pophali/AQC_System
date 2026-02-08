@@ -159,8 +159,10 @@ def run_validator(input_path: str, output_path: str, mode: str = "strict") -> No
         "module": "validate_artifacts",
         "status": "PASSED",
         "effective_status": "PASSED",
-        "metrics": {},
-        "events": []
+        "details": {
+            "metrics": {},
+            "events": []
+        }
     }
     
     # 1. Load Configuration
@@ -171,9 +173,9 @@ def run_validator(input_path: str, output_path: str, mode: str = "strict") -> No
     # Fast pass: if bitrate is extremely low, flag it immediately
     meta = get_bitrate_metrics(path_obj)
     if meta:
-        report["metrics"].update(meta)
+        report["details"]["metrics"].update(meta)
         if meta["bpp"] < 0.02: # Critical starvation
-            report["events"].append({
+            report["details"]["events"].append({
                 "type": "bitrate_starvation",
                 "details": f"Critical Bitrate Starvation ({meta['bpp']:.4f} bpp).",
                 "severity": "CRITICAL",
@@ -196,21 +198,21 @@ def run_validator(input_path: str, output_path: str, mode: str = "strict") -> No
             # Record basic metrics
             if raw_results:
                 all_scores = [r['score'] for r in raw_results]
-                report["metrics"]["ml_model"] = "BRISQUE"
-                report["metrics"]["frames_analyzed"] = len(raw_results)
-                report["metrics"]["avg_quality_score"] = round(sum(all_scores)/len(all_scores), 2)
-                report["metrics"]["worst_score"] = round(max(all_scores), 2)
+                report["details"]["metrics"]["ml_model"] = "BRISQUE"
+                report["details"]["metrics"]["frames_analyzed"] = len(raw_results)
+                report["details"]["metrics"]["avg_quality_score"] = round(sum(all_scores)/len(all_scores), 2)
+                report["details"]["metrics"]["worst_score"] = round(max(all_scores), 2)
             
             # Stitch events
             ml_events = stitch_ml_events(
                 raw_results, 
                 min_duration=ml_config.get("min_duration_sec", 1.0)
             )
-            report["events"].extend(ml_events)
+            report["details"]["events"].extend(ml_events)
             
         except Exception as e:
             logger.error(f"ML Analysis failed: {e}")
-            report["events"].append({
+            report["details"]["events"].append({
                 "type": "ml_engine_error",
                 "details": f"Artifact detection crashed: {str(e)}",
                 "severity": "WARNING"
@@ -219,7 +221,7 @@ def run_validator(input_path: str, output_path: str, mode: str = "strict") -> No
         logger.warning("ML Analysis skipped. Check config or dependencies.")
 
     # 4. Determine Final Status
-    severities = [e.get("severity", "INFO") for e in report["events"]]
+    severities = [e.get("severity", "INFO") for e in report["details"]["events"]]
     
     if "CRITICAL" in severities or "SEVERE" in severities:
         report["status"] = "REJECTED"

@@ -205,8 +205,10 @@ def run_validator(input_path, output_path, mode="strict"):
     report = {
         "module": "validate_interlace",
         "status": status,
-        "metrics": metrics,
-        "events": events
+        "details": {
+            "metrics": metrics,
+            "events": events
+        }
     }
     
     with open(output_path, "w") as f:

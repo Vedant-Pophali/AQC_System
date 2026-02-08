@@ -100,7 +100,9 @@ def run_validator(input_path, output_path, mode="strict"):
     report = {
         "module": "validate_black_freeze",
         "status": status,
-        "events": events
+        "details": {
+            "events": events
+        }
     }
     
     with open(output_path, "w") as f:

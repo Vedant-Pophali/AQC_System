@@ -157,30 +157,32 @@ def run_validator(input_path, output_path, mode="strict", hwaccel="none"):
     report = {
         "module": "validate_frames",
         "status": "PASSED",
-        "events": [],
-        "metrics": {}
+        "details": {
+            "events": [],
+            "metrics": {}
+        }
     }
 
     # 1. Bitstream Scan (PTS/DTS)
     log_data = scan_bitstream(input_path, hwaccel)
     bitstream_events = parse_ffmpeg_errors(log_data)
-    report["events"].extend(bitstream_events)
+    report["details"]["events"].extend(bitstream_events)
 
     # 2. Visual Scan (Duplicates, Gaps, Drift)
     visual_events, dup_count, drift = scan_visual_integrity(input_path)
-    report["events"].extend(visual_events)
+    report["details"]["events"].extend(visual_events)
     
-    report["metrics"] = {
+    report["details"]["metrics"] = {
         "duplicate_frame_count": dup_count,
         "max_pts_drift_ms": round(drift, 2)
     }
 
     # Severity Logic
-    if any(e["type"] in ["non_monotonic_pts", "corrupt_packet"] for e in report["events"]):
+    if any(e["type"] in ["non_monotonic_pts", "corrupt_packet"] for e in report["details"]["events"]):
         report["status"] = "REJECTED"
-    elif report["metrics"]["duplicate_frame_count"] > 24: 
+    elif report["details"]["metrics"]["duplicate_frame_count"] > 24: 
         report["status"] = "WARNING"
-    elif any(e["type"] == "frame_gap" for e in report["events"]):
+    elif any(e["type"] == "frame_gap" for e in report["details"]["events"]):
         report["status"] = "WARNING"
 
     with open(output_path, "w") as f:
