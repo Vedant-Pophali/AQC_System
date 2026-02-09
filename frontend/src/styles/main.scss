@@ -1,61 +1,10 @@
-// main.scss
-
-// 1. Include functions first (so we can manipulate colors, SVGs, calc, etc)
-@import "bootstrap/scss/functions";
-
-// 2. Include any default variable overrides here
-@import "./variables";
-
-// 3. Include remainder of required Bootstrap stylesheets
-@import "bootstrap/scss/variables";
-@import "bootstrap/scss/maps";
-@import "bootstrap/scss/mixins";
-@import "bootstrap/scss/root";
-
-// 4. Include optional Bootstrap components as needed
-@import "bootstrap/scss/utilities";
-@import "bootstrap/scss/reboot";
-@import "bootstrap/scss/type";
-@import "bootstrap/scss/images";
-@import "bootstrap/scss/containers";
-@import "bootstrap/scss/grid";
-@import "bootstrap/scss/helpers";
-@import "bootstrap/scss/buttons";
-@import "bootstrap/scss/card";
-@import "bootstrap/scss/navbar";
-@import "bootstrap/scss/nav";
-@import "bootstrap/scss/forms";
-@import "bootstrap/scss/transitions";
-@import "bootstrap/scss/tables";
-@import "bootstrap/scss/progress";
-@import "bootstrap/scss/alert";
-@import "bootstrap/scss/badge";
-
-// 5. Add custom utilities
-@import "bootstrap/scss/utilities/api";
-
-// 6. Global Custom Styles
+// Global Custom Styles
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-weight: 600;
-    color: $white;
-}
-
-// Glassmorphism Utility
-.glass-panel {
-    background: rgba($card-bg, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    background-color: #121212; /* Match MUI theme background */
+    color: #e0e0e0;
+    margin: 0;
 }
 
 // Scrollbar styling
@@ -65,14 +14,19 @@ h6 {
 }
 
 ::-webkit-scrollbar-track {
-    background: $dark-bg;
+    background: #121212;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: $secondary-base;
+    background: #6c757d;
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: lighten($secondary-base, 10%);
+    background: #adb5bd;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
 }
