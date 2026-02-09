@@ -38,32 +38,42 @@ const Dashboard: React.FC = () => {
     const fixStatus = jobData?.fixStatus;
     const progress = jobStatus === 'COMPLETED' ? 100 : jobStatus === 'PROCESSING' ? 45 : 0;
 
+    // Ref to track last logged status to prevent duplicates and loops
+    const lastLoggedStatusRef = React.useRef<string | null>(null);
+
     // Effect for logging status changes
     useEffect(() => {
-        if (jobStatus) {
+        if (jobStatus && jobStatus !== lastLoggedStatusRef.current) {
             setLocalLogs(prev => [...prev, `Job Status Update: ${jobStatus}`]);
-            if (jobStatus === 'COMPLETED' && !localLogs.includes("Master Report generated.")) {
+            lastLoggedStatusRef.current = jobStatus;
+
+            if (jobStatus === 'COMPLETED') {
                 toast.success('Analysis Completed Successfully!');
                 setLocalLogs(prev => [...prev, "Master Report generated."]);
-            } else if (jobStatus === 'FAILED' && !localLogs.includes(`Error: ${jobData?.errorMessage}`)) {
+            } else if (jobStatus === 'FAILED') {
                 toast.error(`Analysis Failed: ${jobData?.errorMessage || 'Unknown error'}`);
                 setLocalLogs(prev => [...prev, `Error: ${jobData?.errorMessage}`]);
             }
         }
-    }, [jobStatus, jobData, localLogs]);
+    }, [jobStatus, jobData]);
+
+    // Ref to track remediation status
+    const lastFixStatusRef = React.useRef<string | null>(null);
 
     // Effect for logging fix status changes
     useEffect(() => {
-        if (fixStatus) {
-            if (fixStatus === 'PROCESSING' && !localLogs.includes("Remediation in progress...")) {
+        if (fixStatus && fixStatus !== lastFixStatusRef.current) {
+            lastFixStatusRef.current = fixStatus;
+
+            if (fixStatus === 'PROCESSING') {
                 setLocalLogs(prev => [...prev, "Remediation engine started...", "Applying EBU R128 normalization..."]);
             }
-            if (fixStatus === 'COMPLETED' && !localLogs.includes("Remediation Complete.")) {
+            if (fixStatus === 'COMPLETED') {
                 toast.success('Remediation Completed!');
                 setLocalLogs(prev => [...prev, "Remediation Complete.", "Fixed file ready for download."]);
             }
         }
-    }, [fixStatus, localLogs]);
+    }, [fixStatus]);
 
     const handleDownloadFixed = async () => {
         if (!activeJobId) return;
