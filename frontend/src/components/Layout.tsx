@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Grid, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import Navigation from './Navigation';
 import Sidebar from './Sidebar';

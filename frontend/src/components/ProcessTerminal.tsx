@@ -1,6 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Card } from 'react-bootstrap'; // Keeping bootstrap for now or switching to MUI? 
-// Plan said "Adopt Material UI". I should switch this to MUI Box/Card/Typography.
 import { Box, Typography, Paper } from '@mui/material';
 
 interface ProcessTerminalProps {

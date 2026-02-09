@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Container } from 'react-bootstrap'; // Layout grid from bootstrap (keeping for now as per plan, or switching to MUI Grid?)
-// Plan said "Adopt Material UI". I'll switch to MUI Grid.
-import { Grid, Box, Typography, Fade } from '@mui/material';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Box, Typography, Fade, Container, Stack } from '@mui/material';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import FileUploader from '../components/dashboard/FileUploader';
 import AnalysisProgress from '../components/dashboard/AnalysisProgress';
@@ -15,7 +13,7 @@ const Dashboard: React.FC = () => {
     const [localLogs, setLocalLogs] = useState<string[]>([]);
 
     // Polling for Job Status
-    const { data: jobData, error: jobError } = useQuery({
+    const { data: jobData } = useQuery({
         queryKey: ['job', activeJobId],
         queryFn: async () => {
             if (!activeJobId) return null;
@@ -30,7 +28,7 @@ const Dashboard: React.FC = () => {
     });
 
     const jobStatus = jobData?.status;
-    const progress = jobStatus === 'COMPLETED' ? 100 : jobStatus === 'PROCESSING' ? 45 : 0; // Simplified progress for now, or use real progress from backend if available
+    const progress = jobStatus === 'COMPLETED' ? 100 : jobStatus === 'PROCESSING' ? 45 : 0;
 
     // Effect for logging status changes
     useEffect(() => {
@@ -46,7 +44,6 @@ const Dashboard: React.FC = () => {
         }
     }, [jobStatus, jobData]);
 
-    // Start Analysis Mutation
     const startMutation = useMutation({
         mutationFn: async ({ file, profile }: { file: File, profile: string }) => {
             const formData = new FormData();
@@ -72,7 +69,6 @@ const Dashboard: React.FC = () => {
         }
     });
 
-    // Remediation Mutation
     const remediateMutation = useMutation({
         mutationFn: async (fixType: string) => {
             if (!activeJobId) throw new Error("No active job");
@@ -88,32 +84,27 @@ const Dashboard: React.FC = () => {
         }
     });
 
-    // Poll for remediation status if needed, or re-use job polling if it updates validation status?
-    // Original code had a separate poll for fixStatus.
-    // I can add another query or just rely on the job query if the job object contains fixStatus.
-    // Assuming /jobs/:id returns fixStatus too.
-
     return (
         <Fade in={true}>
-            <Container>
+            <Container maxWidth="xl">
                 <Toaster position="top-right" />
                 <Box sx={{ mb: 4, mt: 2 }}>
                     <Typography variant="h4" fontWeight="bold">Run Quality Control</Typography>
                     <Typography variant="body1" color="text.secondary">Upload media to start the technical compliance pipeline.</Typography>
                 </Box>
 
-                <Grid container spacing={4}>
-                    <Grid item xs={12} lg={6}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
                         <FileUploader
                             onStartAnalysis={(file, profile) => startMutation.mutate({ file, profile })}
                             isProcessing={startMutation.isPending || (jobStatus === 'PROCESSING')}
                         />
-                    </Grid>
+                    </Box>
 
-                    <Grid item xs={12} lg={6}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%' }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack spacing={4} sx={{ height: '100%' }}>
                             <AnalysisProgress
-                                progress={progress} // Improved progress logic can be added later
+                                progress={progress}
                                 status={jobStatus}
                                 jobId={activeJobId}
                             />
@@ -126,9 +117,9 @@ const Dashboard: React.FC = () => {
                             <Box sx={{ flexGrow: 1, minHeight: 250 }}>
                                 <ProcessTerminal title="Forensic Analysis Logs" logs={localLogs} />
                             </Box>
-                        </Box>
-                    </Grid>
-                </Grid>
+                        </Stack>
+                    </Box>
+                </Box>
             </Container>
         </Fade>
     );
