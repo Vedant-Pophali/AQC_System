@@ -168,7 +168,7 @@ const Reports: React.FC = () => {
                                                     onChange={() => handleSelectJob(job.id)}
                                                 />
                                             </TableCell>
-                                            <TableCell sx={{ fontFamily: 'monospace' }}>#{job.id.substring(0, 8)}...</TableCell>
+                                            <TableCell sx={{ fontFamily: 'monospace' }}>#{String(job.id).substring(0, 8)}...</TableCell>
                                             <TableCell>{job.originalFilename || "Unnamed"}</TableCell>
                                             <TableCell>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
                                             <TableCell>
