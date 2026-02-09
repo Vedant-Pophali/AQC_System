@@ -1,13 +1,16 @@
 import React from 'react';
-import { Card, Typography, Button, Box } from '@mui/material';
-import { AutoFixHigh } from '@mui/icons-material';
+import { Card, Typography, Button, Box, CircularProgress } from '@mui/material';
+import { AutoFixHigh, Download } from '@mui/icons-material';
 
 interface JobControlsProps {
     onRemediate: (type: string) => void;
+    onDownload: () => void;
     jobStatus: string;
+    fixStatus?: string; // Additional prop for fix status
+    isRemediating: boolean; // Loading state
 }
 
-const JobControls: React.FC<JobControlsProps> = ({ onRemediate, jobStatus }) => {
+const JobControls: React.FC<JobControlsProps> = ({ onRemediate, onDownload, jobStatus, fixStatus, isRemediating }) => {
     if (jobStatus !== 'COMPLETED') return null;
 
     return (
@@ -18,15 +21,37 @@ const JobControls: React.FC<JobControlsProps> = ({ onRemediate, jobStatus }) => 
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Button
-                    variant="outlined"
-                    color="success"
-                    size="large"
-                    startIcon={<AutoFixHigh />}
-                    onClick={() => onRemediate("combined_fix")}
-                >
-                    Remediate Audio Loudness & Video Artifacts
-                </Button>
+                {!fixStatus || fixStatus === 'NONE' ? (
+                    <Button
+                        variant="outlined"
+                        color="success"
+                        size="large"
+                        startIcon={isRemediating ? <CircularProgress size={20} /> : <AutoFixHigh />}
+                        onClick={() => onRemediate("combined_fix")}
+                        disabled={isRemediating}
+                    >
+                        {isRemediating ? "Remediating..." : "Remediate Audio Loudness & Video Artifacts"}
+                    </Button>
+                ) : fixStatus === 'PROCESSING' ? (
+                    <Button variant="outlined" color="warning" disabled startIcon={<CircularProgress size={20} />}>
+                        Processing Fix...
+                    </Button>
+                ) : fixStatus === 'COMPLETED' ? (
+                    <Button
+                        variant="contained"
+                        color="success"
+                        size="large"
+                        startIcon={<Download />}
+                        onClick={onDownload}
+                    >
+                        Download Fixed Version
+                    </Button>
+                ) : (
+                    <Button variant="outlined" color="error" disabled>
+                        Remediation Failed
+                    </Button>
+                )}
+
                 <Typography variant="caption" color="text.secondary" align="center">
                     Applies EBU R128 Norm (-23 LUFS) + HQ Transcode. Auto-downloads to your machine.
                 </Typography>
