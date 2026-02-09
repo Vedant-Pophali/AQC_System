@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
     const handleDownloadFixed = async () => {
         if (!activeJobId) return;
         try {
-            const downloadUrl = `${apiClient.defaults.baseURL}/jobs/${activeJobId}/download-fixed`;
+            const downloadUrl = `${apiClient.defaults.baseURL}/jobs/${activeJobId}/fixed-download`;
             window.open(downloadUrl, '_blank');
             setLocalLogs(prev => [...prev, "Downloading fixed asset..."]);
         } catch (err) {
