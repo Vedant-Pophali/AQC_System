@@ -51,22 +51,39 @@ const Layout: React.FC = () => {
     return (
         <ThemeProvider theme={darkTheme}>
             <CssBaseline />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default', overflow: 'hidden' }}>
                 <Navigation />
 
-                <Container maxWidth="xl" sx={{ flexGrow: 1, px: { xs: 2, md: 4 }, pb: 4 }}>
-                    <Grid container spacing={3} sx={{ height: '100%' }}>
-                        <Grid item xs={12} md={3} lg={2} sx={{ display: { xs: 'none', md: 'block' } }}>
-                            <Sidebar />
-                        </Grid>
+                <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+                    {/* Sidebar Area - Hidden on mobile, visible on md+ */}
+                    <Box
+                        component="aside"
+                        sx={{
+                            width: 250,
+                            flexShrink: 0,
+                            display: { xs: 'none', md: 'block' },
+                            px: 2,
+                            pb: 2
+                        }}
+                    >
+                        <Sidebar />
+                    </Box>
 
-                        <Grid item xs={12} md={9} lg={10}>
-                            <Box component="main" sx={{ height: '100%', overflowY: 'auto' }}>
-                                <Outlet />
-                            </Box>
-                        </Grid>
-                    </Grid>
-                </Container>
+                    {/* Main Content Area */}
+                    <Box
+                        component="main"
+                        sx={{
+                            flexGrow: 1,
+                            overflowY: 'auto',
+                            px: { xs: 2, md: 4 },
+                            pb: 4
+                        }}
+                    >
+                        <Container maxWidth="xl" disableGutters>
+                            <Outlet />
+                        </Container>
+                    </Box>
+                </Box>
             </Box>
         </ThemeProvider>
     );
