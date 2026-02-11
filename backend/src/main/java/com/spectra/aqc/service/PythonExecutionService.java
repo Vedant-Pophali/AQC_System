@@ -57,6 +57,40 @@ public class PythonExecutionService {
     @org.springframework.beans.factory.annotation.Autowired
     private com.spectra.aqc.repository.JobRepository jobRepository;
 
+    private File resolveMainScript() {
+        // 1. Try configured path
+        File f = new File(scriptPath);
+        if (f.exists()) {
+             logger.info("Found script at configured path: " + f.getAbsolutePath());
+             return f.getAbsoluteFile();
+        }
+        
+        // 2. Try relative to current dir (e.g. if CWD is /app)
+        f = new File("main.py");
+        if (f.exists()) {
+             logger.info("Found script at current dir: " + f.getAbsolutePath());
+             return f.getAbsoluteFile();
+        }
+
+        // 3. Try parent dir (e.g. if CWD is /app/backend)
+        f = new File("../main.py");
+        if (f.exists()) {
+             logger.info("Found script at parent dir: " + f.getAbsolutePath());
+             return f.getAbsoluteFile();
+        }
+        
+        // 4. Try standard Render/Docker path
+        f = new File("/app/main.py");
+        if (f.exists()) {
+             logger.info("Found script at /app/main.py: " + f.getAbsolutePath());
+             return f.getAbsoluteFile();
+        }
+        
+        // Fallback to configured path
+        logger.warn("Script detection failed. Defaulting to: " + scriptPath);
+        return new File(scriptPath).getAbsoluteFile();
+    }
+
     public CompletableFuture<String> runAnalysis(Long jobId, String inputFilePath, String profile) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -65,7 +99,7 @@ public class PythonExecutionService {
                      throw new JobQueuedException("Job " + jobId + " queued for remote execution.");
                 }
 
-                File scriptFile = new File(scriptPath).getCanonicalFile();
+                File scriptFile = resolveMainScript();
                 File sparkScriptFile = new File(sparkScriptPath).getCanonicalFile();
 
                 File targetScript;
@@ -180,8 +214,8 @@ public class PythonExecutionService {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // Resolve fix_media.py relative to main.py
-                // scriptPath is usually path/to/main.py
-                File mainScript = new File(scriptPath).getCanonicalFile();
+                // Use dynamic resolution to handle Render environment (/app vs local)
+                File mainScript = resolveMainScript();
                 Path remediationScriptPath = mainScript.getParentFile().toPath()
                     .resolve("src").resolve("remediation").resolve("fix_media.py");
                 
