@@ -21,8 +21,10 @@ if not REPO_DIR.exists():
     print(f"Cloning {REPO_URL}...")
     subprocess.run(["git", "clone", REPO_URL], check=True)
 else:
-    print("Repository already exists. Pulling latest changes...")
-    subprocess.run(["git", "-C", str(REPO_DIR), "pull"], check=True)
+    print("Repository already exists. Updating...")
+    # Force reset to match remote to avoid conflicts or corrupted states
+    subprocess.run(["git", "-C", str(REPO_DIR), "fetch", "origin"], check=True)
+    subprocess.run(["git", "-C", str(REPO_DIR), "reset", "--hard", "origin/main"], check=True)
 
 # 3. Add Repository to Python Path
 if str(REPO_DIR.resolve()) not in sys.path:
