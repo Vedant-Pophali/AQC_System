@@ -2,18 +2,42 @@
 # # AQC Worker Setup
 # Run this cell to install dependencies and setup the environment.
 # %%
-import requests
-import time
 import os
 import sys
 import subprocess
-import json
 from pathlib import Path
+
+# 1. Install Dependencies
+print("Installing dependencies...")
+subprocess.run([sys.executable, "-m", "pip", "install", "pyspark", "opencv-contrib-python-headless", "numpy", "scipy", "librosa", "pandas", "plotly", "tqdm", "scikit-image", "Pillow", "requests"], check=True)
+
+# 2. Clone Repository
+# NOTE: If the repository is private, you may need to use a Personal Access Token (PAT)
+# e.g., git clone https://<token>@github.com/Vedant-Pophali/AQC_System.git
+REPO_URL = "https://github.com/Vedant-Pophali/AQC_System.git"
+REPO_DIR = Path("AQC_System")
+
+if not REPO_DIR.exists():
+    print(f"Cloning {REPO_URL}...")
+    subprocess.run(["git", "clone", REPO_URL], check=True)
+else:
+    print("Repository already exists. Pulling latest changes...")
+    subprocess.run(["git", "-C", str(REPO_DIR), "pull"], check=True)
+
+# 3. Add Repository to Python Path
+if str(REPO_DIR.resolve()) not in sys.path:
+    sys.path.append(str(REPO_DIR.resolve()))
+
+print("Setup Complete.")
 
 # %% [markdown]
 # # Configuration
 # Set the backend URL and working directory.
 # %%
+import requests
+import time
+import json
+
 # CONFIGURATION
 # In Colab, the user will set this env var or we defaults to the production URL
 BACKEND_URL = os.environ.get("AQC_BACKEND_URL", "https://aqc-system.onrender.com/")
@@ -91,17 +115,20 @@ def run_analysis(video_path, job_id, profile="strict"):
     out_dir = WORK_DIR / f"job_{job_id}_out"
     out_dir.mkdir(exist_ok=True)
     
-    # Resolve paths relative to this script
+    # Resolve paths relative to this script or current dir
     script_dir = Path(__file__).resolve().parent if "__file__" in locals() else Path.cwd()
-    repo_root = script_dir.parent
+    repo_root = script_dir.parent # If running from tools/
     
-    # Path to main_spark.py in backend/python_core
+    # Colab specific: If we cloned AQC_System into cwd
+    colab_repo_root = Path("AQC_System").resolve()
+
+    # Path to main_spark.py
     # Try multiple common locations
     possible_paths = [
-        repo_root / "backend" / "python_core" / "main_spark.py",
+        colab_repo_root / "backend" / "python_core" / "main_spark.py", # Cloned in Colab
+        repo_root / "backend" / "python_core" / "main_spark.py",       # Local tools/ execution
         repo_root / "python_core" / "main_spark.py",
-        script_dir / "backend" / "python_core" / "main_spark.py",
-        Path("/content/backend/python_core/main_spark.py"), # Hardcoded fallback for Colab default
+        Path("/content/backend/python_core/main_spark.py"),            # Legacy/Fallback
     ]
 
     spark_script_path = None
@@ -110,23 +137,28 @@ def run_analysis(video_path, job_id, profile="strict"):
             spark_script_path = p.resolve()
             break
             
-    # If still not found, search recursively in repo_root
+    # If still not found, search recursively
     if not spark_script_path:
-        print(f"main_spark.py not found in standard locations. Searching in {repo_root}...")
-        for p in repo_root.rglob("main_spark.py"):
-            if p.is_file():
-                spark_script_path = p.resolve()
-                break
+        search_roots = [colab_repo_root, repo_root, Path(".")]
+        print(f"main_spark.py not found in standard locations. Searching in {search_roots}...")
+        for root in search_roots:
+            if root.exists():
+                for p in root.rglob("main_spark.py"):
+                    if p.is_file():
+                        spark_script_path = p.resolve()
+                        break
+            if spark_script_path: break
 
     if not spark_script_path:
         # Debug: List what IS there
-        print(f"CRITICAL: main_spark.py not found. Contents of {repo_root}:")
-        try:
-             for item in repo_root.iterdir():
-                 print(f" - {item}")
-        except Exception as e:
-            print(f"Failed to list repo_root: {e}")
-        raise FileNotFoundError(f"Spark script not found in {repo_root} or standard paths.")
+        print(f"CRITICAL: main_spark.py not found.")
+        print(f"Current Directory: {Path.cwd()}")
+        if colab_repo_root.exists():
+             print(f"Contents of {colab_repo_root}:")
+             try:
+                 for item in colab_repo_root.iterdir(): print(f" - {item}")
+             except: pass
+        raise FileNotFoundError(f"Spark script not found. Please ensure AQC_System is cloned.")
         
     print(f"Resolved main_spark.py at: {spark_script_path}")
 
@@ -150,7 +182,29 @@ def run_analysis(video_path, job_id, profile="strict"):
     # Ensure PYTHONPATH includes backend/python_core so imports work in subprocesses
     env = os.environ.copy()
     python_core_path = spark_script_path.parent
-    env["PYTHONPATH"] = str(python_core_path) + os.pathsep + env.get("PYTHONPATH", "")
+    
+    # Add project root to PYTHONPATH as well (for src.utils imports)
+    project_root = python_core_path.parent.parent # backend/python_core -> backend -> AQC_System
+    
+    # We construct PYTHONPATH to include: python_core dir, and the project root (AQC_System)
+    # This allows imports like `from src.utils...` to work if `src` is in project root or backend
+    
+    # Check where `src` is
+    src_path = None
+    if (python_core_path / "src").exists():
+        src_path = python_core_path
+    elif (project_root / "backend" / "python_core" / "src").exists(): # redundancy check
+        src_path = project_root / "backend" / "python_core"
+    
+    # Actually, main_spark.py uses `from src.utils...`. 
+    # Usually `src` is in `backend/python_core/src` based on previous file view.
+    # So PYTHONPATH should be `backend/python_core`.
+    
+    python_path_entries = [str(python_core_path)]
+    if colab_repo_root.exists():
+         python_path_entries.append(str(colab_repo_root))
+    
+    env["PYTHONPATH"] = os.pathsep.join(python_path_entries) + os.pathsep + env.get("PYTHONPATH", "")
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, env=env)
@@ -159,8 +213,6 @@ def run_analysis(video_path, job_id, profile="strict"):
             raise Exception(f"Analysis process failed: {result.stderr}")
             
         # Find Master_Report.json
-        # It's usually in out_dir / {video_name}_spark_qc / Master_Report.json
-        # But let's search strictly
         for f in out_dir.rglob("Master_Report.json"):
             return f
             
