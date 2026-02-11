@@ -6,6 +6,8 @@ export interface Job {
     errorMessage?: string;
     fixStatus?: string;
     fixedFilePath?: string;
+    progress?: number;
+    currentStep?: string;
 }
 
 export interface Stats {

@@ -54,28 +54,15 @@ public class PythonExecutionService {
     @Value("${app.aqc.execution-mode:LOCAL}")
     private String executionMode;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.spectra.aqc.repository.JobRepository jobRepository;
+
     public CompletableFuture<String> runAnalysis(Long jobId, String inputFilePath, String profile) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // If REMOTE mode, we don't run the script locally.
-                // We return a placeholder or specific signal that the job is QUEUED.
+                // ... (existing REMOTE check logic) ...
                 if ("REMOTE".equalsIgnoreCase(executionMode)) {
-                    logger.info("Job " + jobId + " queued for REMOTE execution. Waiting for worker to pick it up.");
-                    // In REMOTE mode, we might not have a report yet.
-                    // The QualityControlService needs to know this isn't a failure, 
-                    // but it also isn't an immediate success with a report path.
-                    // We'll return a special string or throw a specific 'Queued' exception if needed,
-                    // but for now let's return null to signal "Async Pending" if the caller handles it,
-                    // OR we can't return a report path yet.
-                    
-                    // ACTUALLY: The caller (QualityControlService) expects a report path upon completion of this future.
-                    // But for REMOTE, this future shouldn't complete until the remote worker executes it.
-                    // Since we can't keep a thread blocked for hours waiting for Colab, 
-                    // we should probably change the architecture slightly:
-                    // 1. This method returns immediately for REMOTE.
-                    // 2. We throw a specific exception "JobQueuedException" that the caller catches 
-                    //    and sets status to PENDING (or QUEUED) instead of FAILED.
-                    throw new JobQueuedException("Job " + jobId + " is queued for remote execution.");
+                     throw new JobQueuedException("Job " + jobId + " queued for remote execution.");
                 }
 
                 File scriptFile = new File(scriptPath).getCanonicalFile();
@@ -84,14 +71,12 @@ public class PythonExecutionService {
                 File targetScript;
                 boolean isSpark = "SPARK".equalsIgnoreCase(engineType);
                 
-                // Deterministic Logic based on Configuration
                 if (isSpark) {
                     if (!sparkScriptFile.exists()) {
                          throw new RuntimeException("Spark engine requested but script not found at: " + sparkScriptFile.getAbsolutePath());
                     }
                     targetScript = sparkScriptFile;
                 } else {
-                    // Default to MONOLITH
                     if (!scriptFile.exists()) {
                         throw new RuntimeException("Monolith engine requested but script not found at: " + scriptFile.getAbsolutePath());
                     }
@@ -127,22 +112,42 @@ public class PythonExecutionService {
                     command.add("--segments");
                     command.add(sparkSegmentDuration);
                 } else {
-                    // HW Accel is generally for Monolith/Local FFmpeg
                     command.add("--hwaccel");
                     command.add(hwaccelEnabled ? hwaccelDevice : "none");
                 }
 
                 ProcessBuilder pb = new ProcessBuilder(command);
-                
                 pb.directory(scriptFile.getParentFile());
                 pb.redirectErrorStream(true);
                 Process process = pb.start();
 
-                // Capture output logic could go here (logging)
+                // Regex for parsing progress: [PROGRESS] 25 - Checking Video Frames
+                java.util.regex.Pattern progressPattern = java.util.regex.Pattern.compile("\\[PROGRESS\\]\\s+(\\d+)(?:\\s+-\\s+(.*))?");
+
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         System.out.println("[Job " + jobId + " Python]: " + line);
+                        
+                        // Parse Progress
+                        java.util.regex.Matcher matcher = progressPattern.matcher(line);
+                        if (matcher.find()) {
+                            try {
+                                int progress = Integer.parseInt(matcher.group(1));
+                                String step = matcher.group(2);
+                                
+                                com.spectra.aqc.model.QualityControlJob job = jobRepository.findById(jobId).orElse(null);
+                                if (job != null) {
+                                    job.setProgress(progress);
+                                    if (step != null && !step.isEmpty()) {
+                                        job.setCurrentStep(step);
+                                    }
+                                    jobRepository.save(job);
+                                }
+                            } catch (Exception e) {
+                                logger.error("Error updating progress for job " + jobId, e);
+                            }
+                        }
                     }
                 }
 

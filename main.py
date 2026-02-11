@@ -207,7 +207,14 @@ def main():
     # Define modules that support the --hwaccel flag
     HWACCEL_SUPPORTED = ["validate_structure", "validate_frames"]
 
-    for category, module in VALIDATORS:
+    total_steps = len(VALIDATORS) + 1  # +1 for report generation
+    
+    for i, (category, module) in enumerate(VALIDATORS):
+        # Calculate progress
+        progress_pct = int(((i) / total_steps) * 100)
+        print(f"[PROGRESS] {progress_pct} - Running {module}...")
+        sys.stdout.flush()
+
         # Determine if we should pass the acceleration flag
         use_accel = args.hwaccel if (module in HWACCEL_SUPPORTED) else None
         
@@ -220,6 +227,8 @@ def main():
     dashboard_path = outdir / "dashboard.html"
 
     if reports:
+        print(f"[PROGRESS] 90 - Generating Master Report...")
+        sys.stdout.flush()
         logger.info("\n--- GENERATING REPORTS ---")
         
         # Generate Master JSON
@@ -265,6 +274,8 @@ def main():
                 except Exception as e:
                     logger.warning(f"Could not parse Master Report for correction check: {e}")
 
+    print(f"[PROGRESS] 100 - Analysis Complete")
+    sys.stdout.flush()
     logger.info("\n[DONE] QC pipeline completed")
 
     if dashboard_path.exists():

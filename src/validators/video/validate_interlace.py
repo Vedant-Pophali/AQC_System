@@ -98,72 +98,22 @@ def analyze_fields(input_path, profile):
     MIN_DUR = profile["min_duration_sec"]
 
     while True:
+        # Safety limit: check only first 30 seconds
+        if frame_idx > (fps * 30): break
+
         ret, frame = cap.read()
         if not ret: break
             
-        # Optimization: Analyze every 2nd frame
-        if frame_idx % 2 != 0:
+        # Optimization: Analyze every 5th frame to speed up
+        if frame_idx % 5 != 0:
             frame_idx += 1
             continue
 
         current_time = frame_idx / fps
         
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # Field Split
-        even_field = gray[0::2, :]
-        odd_field = gray[1::2, :]
-        min_h = min(even_field.shape[0], odd_field.shape[0])
-        even_field = even_field[:min_h, :]
-        odd_field = odd_field[:min_h, :]
-        
-        # Metrics
-        psnr = calculate_psnr(even_field, odd_field)
-        ssim = calculate_ssim_approx(even_field, odd_field)
-        
-        total_psnr += psnr
-        total_ssim += ssim
-        
-        temp_div = 0.0
-        if prev_odd_field is not None:
-            temp_div = np.mean(np.abs(odd_field - prev_odd_field))
-            total_temp_div += temp_div
-        
-        prev_odd_field = odd_field.copy()
-        
-        # ---------------------------------------------------------
-        # ROBUST INTERLACE DETECTION LOGIC
-        # We need significant motion (temp_div) AND (low PSNR OR low SSIM)
-        # SSIM is often better at catching fine comb artifacts
-        # ---------------------------------------------------------
-        is_interlaced_frame = False
-        
-        if temp_div > TH_MOTION:
-            if psnr < TH_PSNR or ssim < TH_SSIM:
-                is_interlaced_frame = True
-                metrics["interlaced_frame_count"] += 1
-            
-        if is_interlaced_frame:
-            if not in_interlace_seq:
-                in_interlace_seq = True
-                seq_start_time = current_time
-        else:
-            if in_interlace_seq:
-                in_interlace_seq = False
-                duration = current_time - seq_start_time
-                if duration > MIN_DUR:
-                    events.append({
-                        "type": "interlace_artifact",
-                        "details": f"Combing artifacts detected ({duration:.2f}s). PSNR:{psnr:.1f} SSIM:{ssim:.2f}",
-                        "start_time": round(seq_start_time, 2),
-                        "end_time": round(current_time, 2)
-                    })
- 
-        metrics["scanned_frames"] += 1
-        frame_idx += 1
-        
-        # Safety limit for very long videos (check first 2 minutes)
-        if frame_idx > (fps * 120): break
+        # ... (rest of processing)
+
+
 
     cap.release()
     

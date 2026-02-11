@@ -36,6 +36,12 @@ public class QualityControlJob {
     private String fixedFilePath;
     private String fixStatus; // PENDING, PROCESSING, COMPLETED, FAILED
 
+    // Progress Tracking
+    @Column(columnDefinition = "integer default 0")
+    private int progress;
+    
+    private String currentStep;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -83,4 +89,10 @@ public class QualityControlJob {
 
     public String getFixStatus() { return fixStatus; }
     public void setFixStatus(String fixStatus) { this.fixStatus = fixStatus; }
+
+    public int getProgress() { return progress; }
+    public void setProgress(int progress) { this.progress = progress; }
+
+    public String getCurrentStep() { return currentStep; }
+    public void setCurrentStep(String currentStep) { this.currentStep = currentStep; }
 }

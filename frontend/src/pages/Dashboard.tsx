@@ -36,7 +36,8 @@ const Dashboard: React.FC = () => {
 
     const jobStatus = jobData?.status;
     const fixStatus = jobData?.fixStatus;
-    const progress = jobStatus === 'COMPLETED' ? 100 : jobStatus === 'PROCESSING' ? 45 : 0;
+    // Progress is now managed by the backend
+    // const progress = jobStatus === 'COMPLETED' ? 100 : jobStatus === 'PROCESSING' ? 45 : 0;
 
     // Ref to track last logged status to prevent duplicates and loops
     const lastLoggedStatusRef = React.useRef<string | null>(null);
@@ -150,9 +151,10 @@ const Dashboard: React.FC = () => {
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack spacing={4} sx={{ height: '100%' }}>
                             <AnalysisProgress
-                                progress={progress}
+                                progress={jobData?.progress || 0}
                                 status={jobStatus || 'STARTING'}
                                 jobId={activeJobId}
+                                currentStep={jobData?.currentStep}
                             />
 
                             <JobControls

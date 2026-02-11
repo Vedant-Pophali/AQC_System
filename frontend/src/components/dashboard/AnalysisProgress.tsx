@@ -7,9 +7,10 @@ interface AnalysisProgressProps {
     progress: number;
     status: string; // 'STARTING', 'PROCESSING', 'COMPLETED', 'FAILED'
     jobId: string | null;
+    currentStep?: string;
 }
 
-const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ progress, status, jobId }) => {
+const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ progress, status, jobId, currentStep }) => {
     const isCompleted = status === 'COMPLETED';
     const isFailed = status === 'FAILED';
 
@@ -41,8 +42,11 @@ const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ progress, status, j
                         variant="determinate"
                         value={progress}
                         color={getStatusColor()}
-                        sx={{ height: 10, borderRadius: 5, mb: 3 }}
+                        sx={{ height: 10, borderRadius: 5, mb: 1 }}
                     />
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3, textAlign: 'right', fontStyle: 'italic' }}>
+                        {currentStep || 'Initializing...'}
+                    </Typography>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant="caption" color="text.secondary">Current Status</Typography>
