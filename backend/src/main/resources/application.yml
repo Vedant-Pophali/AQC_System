@@ -50,7 +50,7 @@ app:
     upload-dir: uploads/
   aqc:
     script-path: python_core/main.py
-    spark-script-path: ../main_spark.py
+    spark-script-path: python_core/main_spark.py
     engine: MONOLITH # Options: MONOLITH, SPARK
     hwaccel:
       enabled: false

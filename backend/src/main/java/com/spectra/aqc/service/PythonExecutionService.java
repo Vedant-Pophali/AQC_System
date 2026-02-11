@@ -113,11 +113,24 @@ public class PythonExecutionService {
                 boolean isSpark = "SPARK".equalsIgnoreCase(engineType);
                 
                 if (isSpark) {
-                    if (!sparkScriptFile.exists()) {
-                         throw new RuntimeException("Spark engine requested but script not found at: " + sparkScriptFile.getAbsolutePath());
+                    // Try to resolve spark script similar to main script
+                    File sparkF = new File(sparkScriptPath);
+                    if (!sparkF.exists()) {
+                         // Try bundled path
+                         sparkF = new File("python_core/main_spark.py");
                     }
-                    targetScript = sparkScriptFile;
+                     if (!sparkF.exists()) {
+                         // Try Render path
+                         sparkF = new File("/app/python_core/main_spark.py");
+                    }
+                    
+                    if (!sparkF.exists()) {
+                         throw new RuntimeException("Spark engine requested but script not found at: " + sparkScriptPath + " or bundled paths");
+                    }
+                    targetScript = sparkF.getAbsoluteFile();
                 } else {
+                    // Monolith (Main)
+                    File scriptFile = resolveMainScript();
                     if (!scriptFile.exists()) {
                         throw new RuntimeException("Monolith engine requested but script not found at: " + scriptFile.getAbsolutePath());
                     }
