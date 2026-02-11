@@ -1,3 +1,7 @@
+# %% [markdown]
+# # AQC Worker Setup
+# Run this cell to install dependencies and setup the environment.
+# %%
 import requests
 import time
 import os
@@ -6,12 +10,23 @@ import subprocess
 import json
 from pathlib import Path
 
+# %% [markdown]
+# # Configuration
+# Set the backend URL and working directory.
+# %%
 # CONFIGURATION
-# In Colab, the user will set this env var or we defaults to localhost for testing
-BACKEND_URL = os.environ.get("AQC_BACKEND_URL", "http://localhost:8080")
+# In Colab, the user will set this env var or we defaults to the production URL
+BACKEND_URL = os.environ.get("AQC_BACKEND_URL", "https://aqc-system.onrender.com/")
 WORK_DIR = Path("aqc_worker_workspace")
 WORK_DIR.mkdir(exist_ok=True)
 
+print(f"Worker configured for: {BACKEND_URL}")
+print(f"Workspace: {WORK_DIR.resolve()}")
+
+# %% [markdown]
+# # Helper Functions
+# Define necessary functions for job processing.
+# %%
 def get_pending_jobs():
     try:
         resp = requests.get(f"{BACKEND_URL}/api/v1/queue/pending")
@@ -67,13 +82,17 @@ def report_failure(job_id, error_msg):
     except Exception as e:
         print(f"Failed to report failure: {e}")
 
+# %% [markdown]
+# # Analysis Logic
+# Core logic to run the analysis script.
+# %%
 def run_analysis(video_path, job_id, profile="strict"):
     # Output dir for this job
     out_dir = WORK_DIR / f"job_{job_id}_out"
     out_dir.mkdir(exist_ok=True)
     
     # Resolve paths relative to this script
-    script_dir = Path(__file__).resolve().parent
+    script_dir = Path(__file__).resolve().parent if "__file__" in locals() else Path.cwd()
     repo_root = script_dir.parent
     
     # Path to main_spark.py in backend/python_core
@@ -150,6 +169,10 @@ def run_analysis(video_path, job_id, profile="strict"):
     except Exception as e:
         raise e
 
+# %% [markdown]
+# # Main Loop
+# Start the worker loop.
+# %%
 def main_loop():
     print(f"Worker started. Polling {BACKEND_URL}...")
     while True:
