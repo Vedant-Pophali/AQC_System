@@ -122,20 +122,3 @@ The system uses `src/config/threshold_registry.py` to manage compliance profiles
 
 ### Automatic Remediation
 To enable auto-correction (e.g., loudness normalization), pass the `--fix` flag or enable "Auto-Fix" in the UI when submitting a job.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow the steps below:
-1.  **Fork** the repository.
-2.  Create a feature branch: `git checkout -b featured/new-validator`.
-3.  Commit changes: `git commit -m "feat: add HDR validation"`.
-4.  Push to branch: `git push origin feature/new-validator`.
-5.  Open a **Pull Request**.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
