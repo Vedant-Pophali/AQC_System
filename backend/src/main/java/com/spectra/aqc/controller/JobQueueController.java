@@ -40,4 +40,10 @@ public class JobQueueController {
         qcService.completeJobRemote(id, reportJson, reportHtml, errorMessage);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{id}/complete-remediation")
+    public ResponseEntity<Void> completeRemediation(@PathVariable Long id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        qcService.completeRemediationRemote(id, file);
+        return ResponseEntity.ok().build();
+    }
 }

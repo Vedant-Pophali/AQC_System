@@ -155,9 +155,22 @@ public class QualityControlService {
         QualityControlJob job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
 
-        job.setFixStatus("PROCESSING");
+        // Instead of running locally, we queue it
+        // We hijack the 'profile' field to pass the fix type to the worker if needed, 
+        // or we expect the worker to check 'fixType' (but our worker currently uses 'profile')
+        // Let's use a convention: profile="REMEDIATION:<fixType>"
+        
+        job.setFixStatus("QUEUED");
+        // We'll store the fix type in the profile temporarily for the worker to pick up, 
+        // OR we just rely on the worker reading additional fields.
+        // Since our worker reads 'profile', let's use that for simplicity in the immediate term.
+        // A cleaner way would be to have a separate 'taskType' field, but we are patching.
+        job.setProfile("REMEDIATION:" + fixType);
+        
         jobRepository.save(job);
-
+        
+        // Remove local execution
+        /*
         pythonExecutionService.runRemediation(job.getId(), job.getFilePath(), fixType)
             .thenAccept(fixedPath -> {
                 job.setFixStatus("COMPLETED");
@@ -170,24 +183,34 @@ public class QualityControlService {
                 jobRepository.save(job);
                 return null;
             });
+        */
     }
 
     // --- Remote Worker Methods ---
 
     public List<QualityControlJob> getQueuedJobs() {
-        return jobRepository.findByStatus(QualityControlJob.JobStatus.QUEUED);
+        List<QualityControlJob> analysisJobs = jobRepository.findByStatus(QualityControlJob.JobStatus.QUEUED);
+        List<QualityControlJob> remediationJobs = jobRepository.findByFixStatus("QUEUED");
+        
+        // Combine lists
+        java.util.List<QualityControlJob> allJobs = new java.util.ArrayList<>(analysisJobs);
+        allJobs.addAll(remediationJobs);
+        return allJobs;
     }
 
     public synchronized QualityControlJob claimJob(Long id) {
         QualityControlJob job = jobRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
         
-        if (job.getStatus() != QualityControlJob.JobStatus.QUEUED) {
-             throw new RuntimeException("Job is not in QUEUED state (Current: " + job.getStatus() + ")");
+        if (job.getStatus() == QualityControlJob.JobStatus.QUEUED) {
+             job.setStatus(QualityControlJob.JobStatus.PROCESSING);
+             return jobRepository.save(job);
+        } else if ("QUEUED".equals(job.getFixStatus())) {
+             job.setFixStatus("PROCESSING");
+             return jobRepository.save(job);
+        } else {
+             throw new RuntimeException("Job " + id + " is not in QUEUED state.");
         }
-        
-        job.setStatus(QualityControlJob.JobStatus.PROCESSING);
-        return jobRepository.save(job);
     }
 
     public void completeJobRemote(Long id, String reportJsonContent, String reportHtmlContent, String errorMessage) {
@@ -226,6 +249,32 @@ public class QualityControlService {
                 job.setErrorMessage("Failed to save remote report: " + e.getMessage());
                 job.setCompletedAt(LocalDateTime.now());
             }
+        }
+        jobRepository.save(job);
+    }
+    
+    public void completeRemediationRemote(Long id, MultipartFile file) {
+        QualityControlJob job = jobRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        
+        try {
+            // Save the uploaded file
+            java.nio.file.Path originalPath = java.nio.file.Path.of(job.getFilePath());
+            String originalName = originalPath.getFileName().toString();
+            String nameWithoutExt = originalName.lastIndexOf('.') > 0 ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
+            String ext = originalName.lastIndexOf('.') > 0 ? originalName.substring(originalName.lastIndexOf('.')) : ".mp4";
+            
+            String fixedFilename = nameWithoutExt + "_fixed_remote" + ext;
+            java.nio.file.Path fixedPath = originalPath.getParent().resolve(fixedFilename);
+            
+            file.transferTo(fixedPath.toFile());
+            
+            job.setFixedFilePath(fixedPath.toAbsolutePath().toString());
+            job.setFixStatus("COMPLETED");
+            
+        } catch (Exception e) {
+             job.setFixStatus("FAILED");
+             job.setErrorMessage("Failed to save remote remediated file: " + e.getMessage());
         }
         jobRepository.save(job);
     }

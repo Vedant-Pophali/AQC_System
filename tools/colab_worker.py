@@ -224,6 +224,80 @@ def run_analysis(video_path, job_id, profile="strict"):
         raise e
 
 # %% [markdown]
+# # Remediation Logic
+# Logic to run the remediation script.
+# %%
+def run_remediation(video_path, job_id, fix_type):
+    # Output dir for this job
+    out_dir = WORK_DIR / f"job_{job_id}_fix"
+    out_dir.mkdir(exist_ok=True)
+    
+    # Resolve paths relative to this script or current dir
+    script_dir = Path(__file__).resolve().parent if "__file__" in locals() else Path.cwd()
+    repo_root = script_dir.parent # If running from tools/
+    colab_repo_root = Path("AQC_System").resolve()
+
+    # Path to fix_media.py
+    # BE/python_core/src/remediation/fix_media.py
+    possible_paths = [
+        colab_repo_root / "backend" / "python_core" / "src" / "remediation" / "fix_media.py",
+        repo_root / "backend" / "python_core" / "src" / "remediation" / "fix_media.py",
+        repo_root / "python_core" / "src" / "remediation" / "fix_media.py",
+    ]
+
+    fix_script_path = None
+    for p in possible_paths:
+        if p.exists() and p.is_file():
+            fix_script_path = p.resolve()
+            break
+            
+    if not fix_script_path:
+        raise FileNotFoundError(f"fix_media.py not found in standard locations.")
+        
+    print(f"Resolved fix_media.py at: {fix_script_path}")
+
+    # Output file
+    output_filename = f"fixed_{job_id}.mp4"
+    output_path = out_dir / output_filename
+
+    cmd = [
+        sys.executable, str(fix_script_path),
+        "--input", str(video_path),
+        "--output", str(output_path),
+        "--fix", fix_type
+    ]
+    
+    print(f"Running remediation: {' '.join(cmd)}")
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print("STDERR:", result.stderr)
+            raise Exception(f"Remediation process failed: {result.stderr}")
+            
+        if not output_path.exists():
+             raise Exception("Fixed video file not created.")
+             
+        return output_path
+        
+    except Exception as e:
+        raise e
+
+def upload_remediation_result(job_id, file_path):
+    url = f"{BACKEND_URL}/api/v1/queue/{job_id}/complete-remediation"
+    print(f"Uploading fixed video to {url}...")
+    try:
+        with open(file_path, 'rb') as f:
+            files = {'file': (file_path.name, f, 'video/mp4')}
+            resp = requests.post(url, files=files)
+            if resp.status_code != 200:
+                raise Exception(f"Upload failed: {resp.status_code} - {resp.text}")
+            print(f"Remediation upload complete for Job {job_id}")
+    except Exception as e:
+        print(f"Failed to upload fixed video: {e}")
+        raise e
+
+# %% [markdown]
 # # Main Loop
 # Start the worker loop.
 # %%
@@ -247,12 +321,28 @@ def main_loop():
                         download_video(job_id, local_video_path)
                         profile = job.get('profile', 'strict')
                         
-                        report_path = run_analysis(local_video_path, job_id, profile)
-                        report_success(job_id, report_path)
+                        # Check if it is a Remediation Job
+                        if profile.startswith("REMEDIATION:"):
+                            fix_type = profile.split(":", 1)[1]
+                            print(f"Job {job_id} is a REMEDIATION job. Type: {fix_type}")
+                            fixed_path = run_remediation(local_video_path, job_id, fix_type)
+                            upload_remediation_result(job_id, fixed_path)
+                        else:
+                            # Standard Analysis Job
+                            report_path = run_analysis(local_video_path, job_id, profile)
+                            report_success(job_id, report_path)
                         
                     except Exception as e:
                         print(f"Job {job_id} Failed: {e}")
-                        report_failure(job_id, str(e))
+                        # If remediation failed, we might want to report failure differently, 
+                        # currently report_failure generally updates status to FAILED.
+                        # For remediation, our backend service handles updates via upload,
+                        # but we can try generic failure report if we want to update the fixStatus.
+                        # However, report_failure updates 'status', not 'fixStatus'.
+                        # Ideally failure reporting should also be split, but for now we log it.
+                        # We can send a special error payload if needed.
+                        print("Reporting generic failure...")
+                        report_failure(job_id, f"Worker Error: {str(e)}")
                     finally:
                         # Cleanup
                         if local_video_path.exists():

@@ -12,4 +12,6 @@ public interface JobRepository extends JpaRepository<QualityControlJob, Long> {
     List<QualityControlJob> findAllByOrderByCreatedAtDesc();
     
     List<QualityControlJob> findByStatus(QualityControlJob.JobStatus status);
+    
+    List<QualityControlJob> findByFixStatus(String fixStatus);
 }
