@@ -118,6 +118,11 @@ def main():
     
     # 2. Setup Spark
     logger.info(f"Initializing Spark Session (Master: {args.spark_master})...")
+    
+    # Ensure workers can find the modules
+    # We add the current directory and the src parent to PYTHONPATH
+    python_path = os.environ.get("PYTHONPATH", "")
+    
     spark = SparkSession.builder \
         .appName("SpectraAQC-Distributed") \
         .master(args.spark_master) \
@@ -127,6 +132,7 @@ def main():
         .config("spark.python.worker.timeout", "600") \
         .config("spark.task.maxFailures", "4") \
         .config("spark.python.worker.faulthandler.enabled", "true") \
+        .config("spark.executorEnv.PYTHONPATH", python_path) \
         .getOrCreate()
     
     # Ship code to workers
