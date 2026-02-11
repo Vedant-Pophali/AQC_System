@@ -48,7 +48,7 @@ def test_pipeline_execution():
     Runs main.py against the generated video and verifies the report.
     """
     cmd = [
-        sys.executable, "main.py",
+        sys.executable, "backend/python_core/main.py",
         "--input", TEST_VIDEO,
         "--outdir", TEST_OUTDIR,
         "--mode", "strict"
