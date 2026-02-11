@@ -1,46 +1,40 @@
-# 1. Base Image (Explicit Stable)
-FROM python:3.11-slim-bookworm
+# 1. Build Stage
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+# Copy POM and Source relative to Root Context
+COPY backend/pom.xml .
+COPY backend/src ./src
+RUN mvn clean package -DskipTests
 
-# 2. Environment Config
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# 3. FIX: Configure APT to be resilient against unstable mirrors
-# Disabling pipelining fixes most "Hash Sum Mismatch" errors
-RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
-    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
-    echo "Acquire::BrokenProxy true;" >> /etc/apt/apt.conf.d/99custom
-
-# 4. Install System Dependencies
-# We use a double-update strategy to ensure lists are fresh
-RUN rm -rf /var/lib/apt/lists/* && \
-    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
-    apt-get install -y --no-install-recommends --fix-missing \
-    ffmpeg \
-    libsndfile1 \
-    libsm6 \
-    libxext6 \
-    libgl1 \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# 5. Set Working Directory
+# 2. Run Stage
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# 6. Install Python Dependencies
+# Install Python and FFmpeg
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy JAR from Build Stage
+COPY --from=build /app/target/aqc-backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Copy Python Application Source
+COPY main.py .
+COPY src ./src
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 7. Copy Application Code
-COPY . .
+# Install Python Dependencies
+# Use --break-system-packages for recent Debian/Ubuntu versions if needed, or venv
+RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
-# 8. Environment Variables
-ENV PYTHONPATH=/app
+# Environment Configuration
+ENV APP_AQC_EXECUTION_MODE=LOCAL
+ENV APP_STORAGE_UPLOAD_DIR=/tmp/uploads
 
-# 9. Build-Time Health Check
-RUN python -c "import cv2; print(f'Build Check: OpenCV {cv2.__version__} Ready')"
+# Expose Port
+EXPOSE 8080
 
-# 10. Default Command
-ENTRYPOINT ["python", "main.py"]
-CMD ["--help"]
+# Entrypoint
+ENTRYPOINT ["java", "-jar", "app.jar"]
