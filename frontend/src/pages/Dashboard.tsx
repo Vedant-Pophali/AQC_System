@@ -72,8 +72,12 @@ const Dashboard: React.FC = () => {
                 toast.success('Remediation Completed!');
                 setLocalLogs(prev => [...prev, "Remediation Complete.", "Fixed file ready for download."]);
             }
+            if (fixStatus === 'FAILED') {
+                toast.error(`Remediation Failed: ${jobData?.errorMessage || 'Unknown error'}`);
+                setLocalLogs(prev => [...prev, `Error: ${jobData?.errorMessage || "Remediation process failed."}`]);
+            }
         }
-    }, [fixStatus]);
+    }, [fixStatus, jobData]);
 
     const handleDownloadFixed = async () => {
         if (!activeJobId) return;
