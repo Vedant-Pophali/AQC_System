@@ -187,8 +187,31 @@ public class PythonExecutionService {
                 
                 File fixScript = remediationScriptPath.toFile();
                 if (!fixScript.exists()) {
-                     throw new RuntimeException("Remediation script not found at: " + fixScript.getAbsolutePath());
+                logger.error("Remediation script NOT found: " + fixScript.getAbsolutePath());
+                // Debugging: List files in the parent directory to see what's there
+                File parentDir = mainScript.getParentFile();
+                if (parentDir != null && parentDir.exists()) {
+                     File srcDir = new File(parentDir, "src");
+                     logger.error("Checking src dir: " + srcDir.getAbsolutePath());
+                     if (srcDir.exists()) {
+                         File remDir = new File(srcDir, "remediation");
+                         logger.error("Checking remediation dir: " + remDir.getAbsolutePath());
+                         if (remDir.exists()) {
+                             String[] files = remDir.list();
+                             logger.error("Files in remediation: " + (files != null ? java.util.Arrays.toString(files) : "null"));
+                         } else {
+                             logger.error("Remediation dir does NOT exist.");
+                             String[] srcFiles = srcDir.list();
+                             logger.error("Files in src: " + (srcFiles != null ? java.util.Arrays.toString(srcFiles) : "null"));
+                         }
+                     } else {
+                         logger.error("Src dir does NOT exist at: " + srcDir.getAbsolutePath());
+                         String[] parentFiles = parentDir.list();
+                         logger.error("Files in parent: " + (parentFiles != null ? java.util.Arrays.toString(parentFiles) : "null"));
+                     }
                 }
+                throw new RuntimeException("Remediation failed: Remediation script not found at: " + fixScript.getAbsolutePath());
+            }
 
                 // Generate Output Path
                 // e.g., input.mp4 -> input_fixed_loudness_norm.mp4
