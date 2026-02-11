@@ -49,7 +49,7 @@ app:
   storage:
     upload-dir: uploads/
   aqc:
-    script-path: ../main.py
+    script-path: python_core/main.py
     spark-script-path: ../main_spark.py
     engine: MONOLITH # Options: MONOLITH, SPARK
     hwaccel:

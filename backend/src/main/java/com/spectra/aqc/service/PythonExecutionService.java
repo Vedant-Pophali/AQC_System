@@ -79,10 +79,17 @@ public class PythonExecutionService {
              return f.getAbsoluteFile();
         }
         
-        // 4. Try standard Render/Docker path
-        f = new File("/app/main.py");
+        // NEW: Try backend-bundled path (python_core/main.py)
+        f = new File("python_core/main.py");
         if (f.exists()) {
-             logger.info("Found script at /app/main.py: " + f.getAbsolutePath());
+             logger.info("Found script at bundled path: " + f.getAbsolutePath());
+             return f.getAbsoluteFile();
+        }
+
+        // 4. Try standard Render/Docker path
+        f = new File("/app/python_core/main.py");
+        if (f.exists()) {
+             logger.info("Found script at /app/python_core/main.py: " + f.getAbsolutePath());
              return f.getAbsoluteFile();
         }
         

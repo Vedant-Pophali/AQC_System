@@ -17,8 +17,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# NOTE: We cannot copy main.py here because build context is backend/
-# Use the ROOT Dockerfile for full Monolith build.
+# Copy Application Source (Python Scripts)
+# Now relative to backend/ (build context)
+COPY python_core ./python_core
+COPY requirements.txt .
+
+# Install Python Deps
+RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
 # Expose Port
 EXPOSE 8080
