@@ -20,25 +20,17 @@ const Home: React.FC = () => {
         refetchInterval: 5000
     });
 
-    const [stats, setStats] = useState([
-        { label: "Total Files Processed", value: "0", trend: 0, icon: Queue, status: 'primary' },
-        { label: "Pass Rate", value: "0%", trend: 0, icon: CheckCircle, status: 'success' },
-        { label: "Critical Failures", value: "0", trend: 0, icon: ErrorOutline, status: 'danger' }
-    ]);
+    const stats = React.useMemo(() => {
+        const total = jobs.length;
+        const completed = jobs.filter(j => j.status === 'COMPLETED').length;
+        const failed = jobs.filter(j => j.status === 'FAILED').length;
+        const passRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
 
-    useEffect(() => {
-        if (jobs) {
-            const total = jobs.length;
-            const completed = jobs.filter(j => j.status === 'COMPLETED').length;
-            const failed = jobs.filter(j => j.status === 'FAILED').length;
-            const passRate = total > 0 ? ((completed / total) * 100).toFixed(1) : '0';
-
-            setStats([
-                { label: "Total Files Processed", value: total.toString(), trend: 12, icon: Queue, status: 'primary' },
-                { label: "Pass Rate", value: `${passRate}%`, trend: 5, icon: CheckCircle, status: 'success' },
-                { label: "Critical Failures", value: failed.toString(), trend: -2, icon: ErrorOutline, status: 'danger' }
-            ]);
-        }
+        return [
+            { label: "Total Files Processed", value: total.toString(), trend: 12, icon: Queue, status: 'primary' },
+            { label: "Pass Rate", value: `${passRate}%`, trend: 5, icon: CheckCircle, status: 'success' },
+            { label: "Critical Failures", value: failed.toString(), trend: -2, icon: ErrorOutline, status: 'danger' }
+        ];
     }, [jobs]);
 
     return (
@@ -61,14 +53,14 @@ const Home: React.FC = () => {
 
                 <Grid container spacing={4} sx={{ mb: 4 }}>
                     {stats.map((stat, idx) => (
-                        <Grid item key={idx} xs={12} md={4}>
+                        <Grid key={idx} size={{ xs: 12, md: 4 }}>
                             <StatusCard {...stat} icon={stat.icon as any} />
                         </Grid>
                     ))}
                 </Grid>
 
                 <Grid container spacing={4}>
-                    <Grid item xs={12} lg={8}>
+                    <Grid size={{ xs: 12, lg: 8 }}>
                         <Card sx={{ height: '100%', p: 0 }}>
                             <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography variant="h6">Recent Activity</Typography>
@@ -125,7 +117,7 @@ const Home: React.FC = () => {
                             </TableContainer>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} lg={4}>
+                    <Grid size={{ xs: 12, lg: 4 }}>
                         <Box sx={{ height: '100%' }}>
                             <ProcessTerminal
                                 title="Live System Logs"
