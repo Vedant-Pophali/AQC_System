@@ -130,7 +130,7 @@ public class PythonExecutionService {
                     targetScript = sparkF.getAbsoluteFile();
                 } else {
                     // Monolith (Main)
-                    File scriptFile = resolveMainScript();
+                    scriptFile = resolveMainScript();
                     if (!scriptFile.exists()) {
                         throw new RuntimeException("Monolith engine requested but script not found at: " + scriptFile.getAbsolutePath());
                     }
