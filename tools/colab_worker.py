@@ -75,7 +75,7 @@ def run_analysis(video_path, job_id, profile="strict"):
     # Construct command
     # We assume we are in the root of the repo (where main_spark.py is)
     cmd = [
-        sys.executable, "main_spark.py",
+        sys.executable, "backend/python_core/main_spark.py",
         "--input", str(video_path),
         "--outdir", str(out_dir),
         "--mode", profile,
@@ -84,8 +84,13 @@ def run_analysis(video_path, job_id, profile="strict"):
     
     print(f"Running analysis: {' '.join(cmd)}")
     
+    # Ensure PYTHONPATH includes backend/python_core so imports work in subprocesses
+    env = os.environ.copy()
+    python_core_path = os.path.abspath("backend/python_core")
+    env["PYTHONPATH"] = python_core_path + os.pathsep + env.get("PYTHONPATH", "")
+    
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
         if result.returncode != 0:
             print("STDERR:", result.stderr)
             raise Exception(f"Analysis process failed: {result.stderr}")
