@@ -91,9 +91,9 @@ def report_success(job_id, report_path):
         # Try to read HTML Dashboard
         dashboard_path = Path(report_path).parent / "dashboard.html"
         if dashboard_path.exists():
-             with open(dashboard_path, 'r', encoding='utf-8') as f:
+            with open(dashboard_path, 'r', encoding='utf-8') as f:
                 payload["reportHtml"] = f.read()
-             print(f"Found and attaching dashboard.html")
+            print(f"Found and attaching dashboard.html")
         
         requests.post(f"{BACKEND_URL}/api/v1/queue/{job_id}/complete", json=payload)
         print(f"Report uploaded for Job {job_id}")
@@ -156,10 +156,10 @@ def run_analysis(video_path, job_id, profile="strict"):
         print(f"CRITICAL: main_spark.py not found.")
         print(f"Current Directory: {Path.cwd()}")
         if colab_repo_root.exists():
-             print(f"Contents of {colab_repo_root}:")
-             try:
-                 for item in colab_repo_root.iterdir(): print(f" - {item}")
-             except: pass
+            print(f"Contents of {colab_repo_root}:")
+            try:
+                for item in colab_repo_root.iterdir(): print(f" - {item}")
+            except: pass
         raise FileNotFoundError(f"Spark script not found. Please ensure AQC_System is cloned.")
         
     print(f"Resolved main_spark.py at: {spark_script_path}")
@@ -204,7 +204,7 @@ def run_analysis(video_path, job_id, profile="strict"):
     
     python_path_entries = [str(python_core_path)]
     if colab_repo_root.exists():
-         python_path_entries.append(str(colab_repo_root))
+        python_path_entries.append(str(colab_repo_root))
     
     env["PYTHONPATH"] = os.pathsep.join(python_path_entries) + os.pathsep + env.get("PYTHONPATH", "")
     
@@ -276,8 +276,8 @@ def run_remediation(video_path, job_id, fix_type):
             raise Exception(f"Remediation process failed: {result.stderr}")
             
         if not output_path.exists():
-             raise Exception("Fixed video file not created.")
-             
+            raise Exception("Fixed video file not created.")
+            
         return output_path
         
     except Exception as e:
