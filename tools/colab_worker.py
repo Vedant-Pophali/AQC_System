@@ -72,10 +72,54 @@ def run_analysis(video_path, job_id, profile="strict"):
     out_dir = WORK_DIR / f"job_{job_id}_out"
     out_dir.mkdir(exist_ok=True)
     
-    # Construct command
-    # We assume we are in the root of the repo (where main_spark.py is)
+    # Resolve paths relative to this script
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    
+    # Path to main_spark.py in backend/python_core
+    # Try multiple common locations
+    possible_paths = [
+        repo_root / "backend" / "python_core" / "main_spark.py",
+        repo_root / "python_core" / "main_spark.py",
+        script_dir / "backend" / "python_core" / "main_spark.py",
+        Path("/content/backend/python_core/main_spark.py"), # Hardcoded fallback for Colab default
+    ]
+
+    spark_script_path = None
+    for p in possible_paths:
+        if p.exists() and p.is_file():
+            spark_script_path = p.resolve()
+            break
+            
+    # If still not found, search recursively in repo_root
+    if not spark_script_path:
+        print(f"main_spark.py not found in standard locations. Searching in {repo_root}...")
+        for p in repo_root.rglob("main_spark.py"):
+            if p.is_file():
+                spark_script_path = p.resolve()
+                break
+
+    if not spark_script_path:
+        # Debug: List what IS there
+        print(f"CRITICAL: main_spark.py not found. Contents of {repo_root}:")
+        try:
+             for item in repo_root.iterdir():
+                 print(f" - {item}")
+        except Exception as e:
+            print(f"Failed to list repo_root: {e}")
+        raise FileNotFoundError(f"Spark script not found in {repo_root} or standard paths.")
+        
+    print(f"Resolved main_spark.py at: {spark_script_path}")
+
+    # Verify we can actually read it
+    try:
+        with open(spark_script_path, 'r') as f:
+            pass
+    except Exception as e:
+        raise Exception(f"Found script at {spark_script_path} but CANNOT READ IT: {e}")
+
     cmd = [
-        sys.executable, "backend/python_core/main_spark.py",
+        sys.executable, str(spark_script_path),
         "--input", str(video_path),
         "--outdir", str(out_dir),
         "--mode", profile,
@@ -86,8 +130,8 @@ def run_analysis(video_path, job_id, profile="strict"):
     
     # Ensure PYTHONPATH includes backend/python_core so imports work in subprocesses
     env = os.environ.copy()
-    python_core_path = os.path.abspath("backend/python_core")
-    env["PYTHONPATH"] = python_core_path + os.pathsep + env.get("PYTHONPATH", "")
+    python_core_path = spark_script_path.parent
+    env["PYTHONPATH"] = str(python_core_path) + os.pathsep + env.get("PYTHONPATH", "")
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, env=env)
